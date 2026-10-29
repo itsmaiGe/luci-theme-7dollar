@@ -7,6 +7,7 @@
 				"iwinfo": [ "assoclist" ],
 				"network.interface": [ "dump" ],
 				"system": [ "board", "info" ],
+				"service": [ "list" ],
 				"uci": [ "get" ],
 				"file": [ "read", "exec" ]
 			},
@@ -19,7 +20,7 @@
 				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
 				"/bin/ping": [ "exec" ]
 			},
-			"uci": [ "7dollar", "firewall", "luci" ]
+			"uci": [ "7dollar", "firewall", "luci", "openclash" ]
 		},
 		"write": {
 			"ubus": {

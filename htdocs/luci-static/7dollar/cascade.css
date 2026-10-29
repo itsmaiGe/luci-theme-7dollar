@@ -202,6 +202,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .close{float:right;font-size:20px;line-height:1;color:var(--ink-3);cursor:pointer;opacity:.7}
 .close:hover{opacity:1;text-decoration:none}
 .control-group{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* LuCI stacks controls with a bare <br> (e.g. System → Local time); give that line break room */
+br+:is(.control-group,input,select,textarea,.cbi-button,.btn,.cbi-dropdown,.cbi-select){margin-top:8px}
 
 /* ============================== form controls ============================== */
 input,textarea,select,.cbi-select,.cbi-dropdown:not(.btn):not(.cbi-button){display:inline-block;width:280px;max-width:100%;background:var(--canvas);color:var(--ink);font-size:14px;line-height:1.4;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 11px;transition:border-color .2s,box-shadow .2s;vertical-align:middle}
@@ -301,9 +303,9 @@ fieldset{min-width:0}
 /* ============================== tables ============================== */
 .table{display:table;width:100%;border-collapse:collapse;margin:0 0 14px;font-size:13.5px;position:relative}
 .tr{display:table-row}
-.th,.td{display:table-cell;vertical-align:middle;text-align:left;padding:11px 12px;border-top:1px solid var(--line-soft);line-height:1.45;overflow-wrap:anywhere}
+.th,.td{display:table-cell;vertical-align:middle;text-align:left;padding:11px 12px;border-top:1px solid var(--line-soft);line-height:1.45;overflow-wrap:break-word}
 .table .tr:first-child>.th,.table .tr:first-child>.td{border-top:0}
-.th,.tr.table-titles .th,.tr.cbi-section-table-titles .th{font-weight:500;font-size:12.5px;color:var(--ink-3);white-space:nowrap;vertical-align:bottom}
+.th,.tr.table-titles .th,.tr.cbi-section-table-titles .th{font-weight:500;font-size:12.5px;color:var(--ink-3);vertical-align:bottom}
 .td>.th{color:inherit}
 .tr.table-titles,.tr.cbi-section-table-titles,.cbi-rowstyle-2{background:none}
 .table .tr:not(.table-titles):not(.cbi-section-table-titles):not(.placeholder):hover>.td{background:var(--tint)}
@@ -316,10 +318,12 @@ fieldset{min-width:0}
 .cbi-section-table .tr.cbi-section-table-descr .th{font-weight:400;color:var(--ink-3)}
 .cbi-section-table-titles.named::before,.cbi-section-table-descr.named::before,.cbi-section-table-row[data-title]::before{content:attr(data-title) " ";display:table-cell;font-weight:500;vertical-align:middle;border-top:1px solid var(--line-soft);padding:11px 12px;color:var(--ink)}
 .cbi-section-table-titles.named::before{border-top:0;color:var(--ink-3);font-size:12.5px}
-.table.cbi-section-table input[type=password],.table.cbi-section-table input[type=text],.table.cbi-section-table textarea,.table.cbi-section-table select,.table.cbi-section-table .cbi-select{width:100%;min-width:90px}
-.table.cbi-section-table .td.cbi-section-table-cell{white-space:nowrap;text-align:right}
-.td.cbi-section-actions{text-align:right;vertical-align:middle;width:1%;white-space:nowrap}
-.td.cbi-section-actions>*{display:inline-flex;gap:6px;flex-wrap:nowrap}
+/* editable grids (one control per cell): tighter gutters, controls shrink to a usable minimum */
+.table.cbi-section-table .th,.table.cbi-section-table .td{padding-left:8px;padding-right:8px}
+.table.cbi-section-table input[type=password],.table.cbi-section-table input[type=text],.table.cbi-section-table textarea,.table.cbi-section-table select,.table.cbi-section-table .cbi-select{width:100%;min-width:64px}
+/* action buttons keep to one row while there is room and wrap instead of pushing out of the card */
+.td.cbi-section-actions{text-align:right;white-space:normal}
+.td.cbi-section-actions>*{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
 .td.cbi-section-actions>*>form{display:inline-flex;gap:6px;margin:0}
 .td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px}
 .td>input[type=text],.td>input[type=password],.td>select,.td>.cbi-dropdown:not(.btn):not(.cbi-button){width:100%}
@@ -457,11 +461,11 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .ifacebox{display:inline-flex;flex-direction:column;min-width:110px;margin:0 8px;text-align:center;white-space:nowrap;line-height:1.3;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .ifacebox .ifacebox-head{padding:5px 8px;background:var(--surface-2);color:var(--ink);font-weight:500;border-bottom:1px solid var(--line-soft)}
 .ifacebox .ifacebox-head.active{background:var(--accent);color:var(--on-accent)}
-.ifacebox .ifacebox-head[style]{color:#1F1E1B}
-.ifacebox .ifacebox-body{padding:6px 8px;font-size:12.5px;color:var(--ink-2)}
+.ifacebox .ifacebox-body{padding:8px;font-size:12.5px;color:var(--ink-2)}
+.ifacebox-body img{width:20px;height:20px;vertical-align:middle;margin:0 1px}
 #cbi-network-interface .ifacebox-body{white-space:normal}
-.ifacebadge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap;cursor:default;line-height:1.3;font-size:12.5px}
-.ifacebadge img{width:22px;height:22px;vertical-align:middle}
+.ifacebadge{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap;cursor:default;line-height:1.3;font-size:12.5px}
+.ifacebadge img{width:18px!important;height:18px!important;flex:none} /* LuCI sets 32px inline on some */
 .ifacebadge-active{border-color:var(--accent);font-weight:500}
 .network-status-table{display:flex;flex-wrap:wrap;gap:12px}
 .network-status-table .ifacebox{flex:1 1 260px;margin:0;text-align:left}
@@ -472,23 +476,57 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .network-status-table .ifacebox-body .ifacebadge>span{overflow:hidden;text-overflow:ellipsis}
 .ifacebadge.large{display:inline-flex;flex:1;min-width:200px;padding:6px 8px}
 #dsl_status_table .ifacebox-body span>strong{display:inline-block;min-width:35%}
-.zonebadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:9px;white-space:nowrap;color:#1F1E1B;font-size:12.5px;line-height:1.4}
+.zonebadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:9px;white-space:nowrap;color:var(--ink);font-size:12.5px;line-height:1.4}
 .zonebadge>em,.zonebadge>strong{display:inline-block;margin:0 2px}
 .zonebadge input{width:6em}
 .zonebadge>.ifacebadge{margin-left:2px;padding:1px 6px}
 .zonebadge-empty{border:1px dashed var(--line);color:var(--ink-3);font-style:italic}
 .zonebadge .cbi-tooltip{background:inherit;color:inherit;padding:2px;margin:-1.6em 0 0 -5px;pointer-events:none}
 .zonebadge .cbi-tooltip>*{position:relative;z-index:2;margin:1px}
+/* firewall zone colours are LuCI's saturated pastels; tone them into the palette in both modes */
+.zonebadge[style*="--zone-color-rgb"],.ifacebox-head[style*="--zone-color-rgb"]{background:rgba(var(--zone-color-rgb),.4)!important;color:var(--ink)}
 .zone-forwards{display:flex;flex-wrap:nowrap;align-items:center;gap:4px}
 .zone-forwards>*{flex:1 1 40%;text-wrap:wrap}
 .zone-forwards>span{flex-basis:10%;text-align:center;color:var(--ink-3)}
 .zone-forwards .zone-src,.zone-forwards .zone-dest{display:flex;flex-direction:column;gap:3px}
-[data-theme=dark] .zonebadge[style],[data-theme=dark] .ifacebox-head[style]{background:linear-gradient(rgba(var(--zone-color-rgb),.45),rgba(var(--zone-color-rgb),.35))!important;color:var(--ink)}
-.assoclist .ifacebadge{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-align:left;max-width:100%}
-.assoclist .td:first-child .ifacebadge{white-space:normal;font-size:12px;line-height:1.35}
-.assoclist .ifacebadge img{width:18px;height:18px;flex:none}
-.assoclist .td:nth-of-type(3),.assoclist .td:nth-of-type(5){width:25%}
+
+/* status text LuCI writes as "<strong>Label: </strong>value", "<big>title</big>", "<em>note</em>" and " | " */
+:is(.td[data-name=_stat],.td[data-name=_ifacestat],.ifacebox-body,.ifacebadge) strong{font-weight:400;color:var(--ink-3)}
+:is(.td[data-name=_stat],.td[data-name=_ifacestat],.ifacebox-body,.ifacebadge,.assoclist) em{font-style:normal;color:var(--ink-3)}
+.td[data-name=_stat]{font-size:13px;line-height:1.7}
+.td[data-name=_stat]>div{color:color-mix(in srgb,var(--ink-3) 45%,transparent)}
+.td[data-name=_stat] .nowrap{color:var(--ink-2);margin-right:4px}
+.td[data-name=_stat] big{display:block;font-size:14.5px;line-height:1.5}
+.td[data-name=_stat] big strong{font-weight:500;color:var(--ink)}
+.td[data-name=_badge] .ifacebadge{min-width:96px;justify-content:center}
+
+/* associated stations: badge text wraps only between words */
+.assoclist .ifacebadge{white-space:normal;word-break:keep-all;text-align:left;max-width:100%}
+.assoclist .ifacebadge small{display:none} /* interface name; the badge title still has it */
+.assoclist .th,.assoclist .td{padding-left:8px;padding-right:8px}
+.assoclist .td:nth-of-type(5){width:28%}
 .assoclist .td:nth-of-type(2){white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* native LuCI icons (<img src=".../resources/icons/*.svg">): hide the bitmap, paint a palette-tinted line icon */
+@supports (mask-size:contain) or (-webkit-mask-size:contain){
+  img[src*="/resources/icons/"]{object-position:-99em 0;background:var(--ink-2);-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+  img[src*="/icons/ethernet"],img[src*="/icons/port_"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3v3H8v-3H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z'/%3E%3Cpath d='M8.5 9v2.5M12 9v2.5M15.5 9v2.5'/%3E%3C/svg%3E")}
+  img[src*="/icons/wifi"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 9.5a14 14 0 0 1 19 0M5.8 13a9.3 9.3 0 0 1 12.4 0M9.2 16.4a4.6 4.6 0 0 1 5.6 0'/%3E%3Ccircle cx='12' cy='19.6' r='.6' fill='%23000'/%3E%3C/svg%3E")}
+  img[src*="/icons/bridge"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 18h18M3 10c3 0 6-3.5 9-3.5s6 3.5 9 3.5M6 9.4V18M12 6.5V18M18 9.4V18'/%3E%3C/svg%3E")}
+  img[src*="/icons/switch"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='7' width='18' height='10' rx='2.5'/%3E%3Cpath d='M7 12h0M10.3 12h0M13.7 12h0M17 12h0' stroke-width='2.4'/%3E%3C/svg%3E")}
+  img[src*="/icons/vlan"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 12.2V5a1.5 1.5 0 0 1 1.5-1.5h7.2L20.5 12 12 20.5z'/%3E%3Ccircle cx='8.2' cy='8.2' r='1.3'/%3E%3C/svg%3E")}
+  img[src*="/icons/alias"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'/%3E%3C/svg%3E")}
+  img[src*="/icons/tunnel"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 20v-8a9 9 0 0 1 18 0v8M7.5 20v-7.5a4.5 4.5 0 0 1 9 0V20M2 20h20'/%3E%3C/svg%3E")}
+  img[src*="/icons/wireguard"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7.5 3v5.5c0 4.6-3.2 8-7.5 9.5-4.3-1.5-7.5-4.9-7.5-9.5V6z'/%3E%3Cpath d='M9.2 12.2h5.6v4H9.2zM10.4 12.2v-1.4a1.6 1.6 0 0 1 3.2 0v1.4'/%3E%3C/svg%3E")}
+  img[src*="/icons/vrf"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l8.5 4.5L12 12.5 3.5 8zM3.5 12.5 12 17l8.5-4.5M3.5 16.5 12 21l8.5-4.5'/%3E%3C/svg%3E")}
+  img[src*="/icons/loading"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9' stroke-width='2.2'/%3E%3C/svg%3E")}
+  img[src*="/icons/signal-"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg fill='%23000' stroke='none'%3E%3Crect x='3' y='15' width='3.4' height='5' rx='1'/%3E%3Crect x='8.2' y='11.5' width='3.4' height='8.5' rx='1'/%3E%3Crect x='13.4' y='8' width='3.4' height='12' rx='1'/%3E%3Crect x='18.6' y='4' width='3.4' height='16' rx='1'/%3E%3C/g%3E%3C/svg%3E")}
+  img[src*="/icons/wifi."],img[src*="/icons/port_up"]{background:var(--accent)}
+  img[src*="_disabled."],img[src*="/icons/port_down"]{background:var(--ink-3);opacity:.55}
+  img[src*="/icons/signal-"]{background:linear-gradient(90deg,var(--accent) var(--lv,0%),color-mix(in srgb,var(--ink-3) 35%,transparent) 0)}
+  img[src*="signal-000-025"]{--lv:30%}img[src*="signal-025-050"]{--lv:52%}img[src*="signal-050-075"]{--lv:74%}img[src*="signal-075-100"]{--lv:100%}
+  img[src*="/icons/loading"]{background:var(--accent);animation:td-spin .8s linear infinite}
+}
 #view>.table{display:table;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:10px 14px;margin-bottom:18px}
 
 /* logs, graphs, misc */
@@ -498,19 +536,19 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 [data-page^=admin-status-realtime] #view div[style*="background"],[data-page=admin-status-channel_analysis] #view div[style*="background"]{background:var(--surface)!important;border-radius:var(--r-md)}
 [data-page^=admin-status-realtime] #view svg text,[data-page=admin-status-channel_analysis] #view svg text{fill:var(--ink-3)}
 #applyreboot-section{line-height:300%}
+/* diagnostics: LuCI spaces host + action with an inline 5px margin sized for its own, shorter controls */
+[data-page=admin-network-diagnostics] .td>input{display:block;width:100%;margin:0 0 8px!important}
 .breadcrumb,#modemenu{display:none!important}
 .td-footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between}
 .td-footer a{color:var(--ink-3)}
 
-/* ============================== mobile: LuCI tables & values ============================== */
-@media (max-width:760px){
+/* ============================== narrow content: LuCI tables & values ==============================
+   Keyed to the width of the content area, not the viewport: the icon rail at 761–1100px leaves
+   less room than a phone, so tables turn into cards wherever they would not fit. Modals are
+   containers too, so dialogs follow their own width. */
+.modal{container:main/inline-size}
+@container main (max-width:700px){
   .cbi-section,.cbi-tblsection{padding:18px 16px;border-radius:18px}
-  .cbi-value{display:block;padding:12px 0}
-  .cbi-value>.cbi-value-title{display:block;padding:0 0 6px}
-  .cbi-value-field,input,select,textarea,.cbi-select,.cbi-dynlist,.cbi-dropdown:not(.btn):not(.cbi-button){width:100%}
-  input[type=checkbox],input[type=radio]{width:18px}
-  input.cbi-input-password{width:calc(100% - 46px)}
-  input,select,textarea,.cbi-dropdown:not(.btn):not(.cbi-button)>ul>li{font-size:16px}
   .table,#view>.table{display:flex;flex-direction:column}
   .tr{display:flex;flex-wrap:wrap;align-items:flex-end;border-top:1px solid var(--line-soft);padding:8px 0}
   .table .tr:first-child{border-top:0}
@@ -519,11 +557,9 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
   .tr.table-titles,.tr.cbi-section-table-titles,.cbi-section-table-descr{display:none}
   .tr[data-title]::before{display:block;flex:1 1 100%;font-size:15px;font-weight:500;padding:4px 6px}
   .td[data-title]::before{content:attr(data-title);display:block;font-size:12px;color:var(--ink-3);font-weight:400;margin-bottom:2px;white-space:pre-line}
-  .td.cbi-value-field{flex-basis:100%}
   .td.cbi-section-actions{flex-basis:100%;max-width:100%;width:auto;text-align:left;padding:6px}
-  .td.cbi-section-actions>*{flex-wrap:wrap}
+  .td.cbi-section-actions>*{display:flex;justify-content:flex-start}
   .td.cbi-section-actions .cbi-button{flex:1 1 auto}
-  .td.cbi-value-field[data-widget="CBI.DummyValue"],.td.cbi-value-field[data-widget="CBI.Button"],.td.cbi-value-field[data-widget="CBI.FlagValue"],.td[data-widget=dvalue],.td[data-widget=button],.td[data-widget=fvalue]{flex-basis:50%}
   .table .tr:hover>.td{background:none!important}
   .col-1{flex:1 1 30px!important}.col-2{flex:2 2 60px!important}.col-3{flex:3 3 90px!important}.col-4{flex:4 4 120px!important}.col-5{flex:5 5 150px!important}.col-6{flex:6 6 180px!important}.col-7{flex:7 7 210px!important}.col-8{flex:8 8 240px!important}.col-9{flex:9 9 270px!important}.col-10{flex:10 10 300px!important}
   .hide-sm,.hide-xs{display:none!important}
@@ -531,6 +567,20 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
   [data-page=admin-network-network] .td[data-name=_ifacebox]{flex-basis:40%}
   [data-page=admin-network-network] .td[data-name=_ifacestat]{flex-basis:60%}
   [data-page=admin-status-overview] .td[width="33%"]{flex-basis:33%}
+}
+@container main (max-width:560px){
+  .table .td.cbi-value-field{flex-basis:100%;width:auto} /* flex-basis sizes cells; not the form-row width below */
+  .td.cbi-value-field[data-widget="CBI.DummyValue"],.td.cbi-value-field[data-widget="CBI.Button"],.td.cbi-value-field[data-widget="CBI.FlagValue"],.td[data-widget=dvalue],.td[data-widget=button],.td[data-widget=fvalue]{flex-basis:50%}
+  .table .td[data-name=_badge]{flex:0 0 auto}
+  .table .td[data-name=_stat]{flex:1 1 0}
+  .cbi-value{display:block;padding:12px 0}
+  .cbi-value>.cbi-value-title{display:block;padding:0 0 6px}
+  .cbi-value-field,input,select,textarea,.cbi-select,.cbi-dynlist,.cbi-dropdown:not(.btn):not(.cbi-button){width:100%}
+  input[type=checkbox],input[type=radio]{width:18px}
+  input.cbi-input-password{width:calc(100% - 46px)}
+}
+@media (max-width:760px){
+  input,select,textarea,.cbi-dropdown:not(.btn):not(.cbi-button)>ul>li{font-size:16px}
   .modal{margin:4vh auto;padding:22px 18px 18px;border-radius:20px;width:94%}
   .modal .button-row>button:first-of-type{margin-right:0}
   .modal .button-row>*{flex:1 1 auto}
@@ -635,8 +685,8 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .td-seg button{min-height:30px;padding:0 14px;border-radius:9px;color:var(--ink-2);font-size:13px;white-space:nowrap;background:none;border:0;cursor:pointer}
 .td-seg button:hover{color:var(--ink)}
 .td-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:500}
-.td-exit{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:2px 0 16px}
-.td-exit .td-serif{font-size:30px}
+.k-proxy .td-seg{display:flex;margin-bottom:18px}
+.k-proxy .td-seg button{flex:1}
 .td-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin:0 0 16px}
 .td-kv>div{background:var(--canvas);border-radius:12px;padding:10px 12px;min-width:0}
 .td-kv dt{font-size:12px;color:var(--ink-3)}
@@ -657,12 +707,12 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .td-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .td-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
 .td-tag svg{width:14px;height:14px;color:var(--ok)}
-.td-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.td-act{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:var(--r-md);background:var(--canvas);text-align:left;transition:background .2s,transform .2s var(--ease);min-width:0;color:var(--ink)!important;text-decoration:none!important}
+.td-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@container (min-width:620px){.td-acts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.td-act{display:flex;gap:12px;align-items:center;padding:14px;border-radius:var(--r-md);background:var(--canvas);text-align:left;transition:background .2s,transform .2s var(--ease);min-width:0;color:var(--ink)!important;text-decoration:none!important}
 .td-act:hover{background:var(--hover);transform:translateY(-1px)}
-.td-act svg{color:var(--accent);margin-top:2px}
-.td-act b{font-weight:500;display:block}
-.td-act small{color:var(--ink-3);font-size:12.5px;display:block}
+.td-act svg{color:var(--accent);flex:none}
+.td-act b{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* settings rows */
 .td-sect{padding:6px 24px;margin-bottom:18px}
@@ -693,7 +743,6 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .td-pal .pv .cd i:first-child{width:45%;height:9px;background:var(--ink);opacity:.85}
 .td-pal .pv .cd u{margin-top:auto;align-self:flex-start;width:42%;height:12px;border-radius:5px;background:var(--accent)}
 .td-pal .nm{display:flex;align-items:center;justify-content:space-between;padding:10px 6px 4px;font-weight:500}
-.td-pal .nm small{display:block;color:var(--ink-3);font-weight:400;font-size:12px}
 .td-pal .ck{width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;opacity:0;transition:opacity .2s}
 .td-pal.on .ck{opacity:1}
 .td-pal .ck svg{width:12px;height:12px;stroke-width:2.4}

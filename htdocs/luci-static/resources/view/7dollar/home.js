@@ -6,7 +6,10 @@
 'require ui';
 'require 7dollar.common as td';
 
-/* 7Dollar home dashboard. Only router data by default; plugin cards are opt-in. */
+/*
+ * 7Dollar home dashboard. Only router data by default; plugin cards are opt-in.
+ * Plugin cards read config/procd state once and never poll the plugin itself.
+ */
 
 const T = td.T, icon = td.icon, esc = td.esc;
 const N = 60;
@@ -102,17 +105,14 @@ return view.extend({
 
 				${showOC ? `<section class="td-card k-proxy" data-card="oc">
 					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
-					<p class="td-muted" style="font-size:12.5px;margin:0">${esc(T('代理流量', 'Proxy traffic'))}</p>
-					<div class="td-exit"><span class="td-serif" id="td-oc-down">—</span><span class="td-muted" id="td-oc-up"></span></div>
 					<dl class="td-kv">
-						<div><dt>${esc(T('连接', 'Connections'))}</dt><dd id="td-oc-conn">—</dd></div>
-						<div><dt>${esc(T('内存', 'Memory'))}</dt><dd id="td-oc-mem">—</dd></div>
-						<div><dt>${esc(T('模式', 'Mode'))}</dt><dd id="td-oc-run">—</dd></div>
+						<div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div>
+						<div><dt>${esc(T('配置文件', 'Config'))}</dt><dd id="td-oc-cfg">—</dd></div>
 					</dl>
 					<div class="td-seg" id="td-oc-seg">
 						<button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button>
 					</div>
-					<a class="btn block" style="margin-top:18px" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
+					<a class="btn block" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
 				</section>` : ''}
 
 				${card('sys', 'k-sys', `
@@ -127,10 +127,10 @@ return view.extend({
 				${card('actions', 'k-actions', `
 					<div class="td-card-h"><h3>${esc(T('常用操作', 'Quick actions'))}</h3></div>
 					<div class="td-acts">
-						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'), T('下载当前全部设置', 'Download all settings'))}
-						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'), T('安装或更新插件', 'Install & update'))}
-						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'), T('Ping、DNS、路由追踪', 'Ping, DNS, traceroute'))}
-						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'), T('最近的系统事件', 'Recent system events'))}
+						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'))}
+						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'))}
+						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'))}
+						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'))}
 					</div>`)}
 			</div>
 		</div>`);
@@ -148,11 +148,7 @@ return view.extend({
 		poll.add(L.bind(this.tick, this), 2);
 		poll.add(L.bind(this.slow, this), 10);
 
-		if (showOC) {
-			this.bindOC();
-			this.pollOC();
-			poll.add(L.bind(this.pollOC, this), 5);
-		}
+		if (showOC) this.loadOC();
 
 		requestAnimationFrame(() => requestAnimationFrame(() => this.paintRings()));
 
@@ -163,8 +159,8 @@ return view.extend({
 		return `<div class="td-ring"><svg viewBox="0 0 58 58"><circle class="bg" cx="29" cy="29" r="24"/><circle class="fg ${cls || ''}" id="td-ring-${key}" cx="29" cy="29" r="24" style="stroke-dasharray:${RING};stroke-dashoffset:${RING}"/></svg><div><b id="td-ring-${key}-v">—</b><small id="td-ring-${key}-l">${esc(label)}</small></div></div>`;
 	},
 
-	act(path, ic, title, sub) {
-		return `<a class="td-act" href="${L.url(path)}">${icon(ic)}<div><b>${esc(title)}</b><small>${esc(sub)}</small></div></a>`;
+	act(path, ic, title) {
+		return `<a class="td-act" href="${L.url(path)}">${icon(ic)}<b>${esc(title)}</b></a>`;
 	},
 
 	set(id, text) {
@@ -269,7 +265,7 @@ return view.extend({
 			return;
 		}
 		this.set('td-summary', td.ZH
-			? `${host} 已平稳运行 ${td.duration(info.uptime)}，${n} 台设备在线${this.s.oc && this.s.ocRunning ? '，OpenClash 运行正常' : ''}。`
+			? `${host} 已平稳运行 ${td.duration(info.uptime)}，${n} 台设备在线。`
 			: `${host} has been up for ${td.duration(info.uptime)} with ${n} device${n == 1 ? '' : 's'} online.`);
 	},
 
@@ -389,47 +385,35 @@ return view.extend({
 		});
 	},
 
-	/* ---------- optional OpenClash card ---------- */
+	/* ---------- optional OpenClash card: one procd + one uci read, no polling ---------- */
 
-	bindOC() {
+	loadOC() {
+		const mark = m => this.root.querySelectorAll('#td-oc-seg button').forEach(b => b.classList.toggle('on', b.dataset.m == m));
+		let mode = null;
+
 		this.$('td-oc-seg').addEventListener('click', ev => {
 			const b = ev.target.closest('button[data-m]');
-			if (!b || b.classList.contains('on')) return;
-			this.markMode(b.dataset.m);
-			request.get(L.url('admin/services/openclash/switch_rule_mode'), { query: { rule_mode: b.dataset.m } })
-				.then(() => td.toast(T('已切换代理模式', 'Proxy mode switched')))
-				.catch(() => td.toast(T('切换失败', 'Switch failed')));
+			if (!b || b.dataset.m == mode) return;
+			const prev = mode;
+			mark(mode = b.dataset.m);
+			request.get(L.url('admin/services/openclash/switch_rule_mode'), { query: { rule_mode: mode } })
+				.then(r => { if (!r.ok) throw r; td.toast(T('已切换代理模式', 'Proxy mode switched')); })
+				.catch(() => { mark(mode = prev); td.toast(T('切换失败', 'Switch failed')); });
 		});
-	},
 
-	markMode(m) {
-		this.root.querySelectorAll('#td-oc-seg button').forEach(b => b.classList.toggle('on', b.dataset.m == m));
-	},
-
-	pollOC() {
-		const get = p => request.get(L.url('admin/services/openclash/' + p)).then(r => r.json()).catch(() => null);
-		return Promise.all([ get('status'), get('toolbar_show'), get('rule_mode') ]).then(([ st, bar, rm ]) => {
-			const running = !!(st && st.clash);
-			this.s.ocRunning = running;
+		return Promise.all([ td.service('openclash'), td.uciSection('openclash', 'config') ]).then(([ svc, c ]) => {
+			const inst = ((svc.openclash || {}).instances || {});
+			const running = Object.keys(inst).some(k => inst[k].running);
 			const chip = this.$('td-oc-chip');
 			chip.className = 'td-chip' + (running ? '' : ' mute');
 			chip.innerHTML = `<span class="td-dot${running ? ' live' : ''}"></span>${esc(running ? T('运行中', 'Running') : T('未运行', 'Stopped'))}`;
 
-			if (running && bar) {
-				const [ dv, du ] = td.rate(+bar.down || 0), [ uv, uu ] = td.rate(+bar.up || 0);
-				this.set('td-oc-down', `↓ ${dv} ${du}`);
-				this.set('td-oc-up', `↑ ${uv} ${uu}`);
-				this.set('td-oc-conn', bar.connections != null ? bar.connections : '—');
-				this.set('td-oc-mem', bar.mem ? td.bytes(bar.mem) : '—');
-			}
-			else {
-				this.set('td-oc-down', running ? '—' : T('已停止', 'Stopped'));
-				this.set('td-oc-up', '');
-			}
-
-			if (st) this.set('td-oc-run', st.run_mode || '—');
-			if (rm && rm.mode) this.markMode(rm.mode);
-			this.paintSummary();
+			const run = String(c.en_mode || c.operation_mode || '');
+			this.set('td-oc-run', run ? run.replace(/^fake-ip/, 'Fake-IP').replace(/^redir-host/, 'Redir-Host').replace(/-(tun|mix)$/, s => ' · ' + s.slice(1).toUpperCase()) : '—');
+			const cfg = String(c.config_path || '').split('/').pop().replace(/\.ya?ml$/, '');
+			this.set('td-oc-cfg', cfg || '—');
+			this.$('td-oc-cfg').title = cfg;
+			mark(mode = c.proxy_mode || 'rule');
 		});
 	},
 

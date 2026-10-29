@@ -16,7 +16,7 @@ const CARDS = [
 ];
 
 const PLUGINS = [
-	[ 'openclash', 'OpenClash', 'admin/services/openclash', T('在总览页显示 OpenClash 的运行状态、代理流量和模式切换', 'Show OpenClash status, traffic and mode switch on the home page'), true ],
+	[ 'openclash', 'OpenClash', 'admin/services/openclash', T('运行状态、运行模式和代理模式切换', 'Status, run mode and proxy mode switch'), true ],
 	[ 'passwall', 'PassWall', 'admin/services/passwall', T('暂未适配，敬请期待', 'Not supported yet'), false ],
 	[ 'homeproxy', 'HomeProxy', 'admin/services/homeproxy', T('暂未适配，敬请期待', 'Not supported yet'), false ]
 ];
@@ -35,9 +35,9 @@ return view.extend({
 		};
 		const usingUs = /\/7dollar$/.test((luci || {}).mediaurlbase || L.env.media || '');
 
-		const pal = td.PALETTES.map(([ id, name, desc ]) => `<button type="button" class="td-pal" data-palette="${id}" data-pick="${id}">
+		const pal = td.PALETTES.map(([ id, name ]) => `<button type="button" class="td-pal" data-palette="${id}" data-pick="${id}">
 			<div class="pv"><div class="sb"><i></i><i></i><i></i><i></i></div><div class="cd"><i></i><i></i><i style="width:70%"></i><u></u></div></div>
-			<div class="nm"><div>${esc(name)}<small>${esc(desc)}</small></div><span class="ck">${icon('tick')}</span></div></button>`).join('');
+			<div class="nm"><span>${esc(name)}</span><span class="ck">${icon('tick')}</span></div></button>`).join('');
 
 		const cards = CARDS.map(([ k, n, d ]) => `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" aria-label="${esc(n)}"></button></div>`).join('');
 
@@ -53,32 +53,30 @@ return view.extend({
 			<div class="td-head"><div>
 				<p class="td-eyebrow">${esc(T('系统', 'System'))}</p>
 				<h1 class="td-serif">${esc(T('外观与首页', 'Appearance'))}</h1>
-				<p class="td-sub">${esc(T('这些偏好只影响界面显示，改了立即生效，不会动到路由器的网络设置。', 'These only change how the interface looks. They apply instantly and never touch your network.'))}</p>
+				<p class="td-sub">${esc(T('只影响界面显示，立即生效，不会改动网络设置。', 'Only changes how the interface looks. Applies instantly and never touches your network.'))}</p>
 			</div></div>
 
 			${usingUs ? '' : `<div class="alert-message info"><h4>${esc(T('当前没有使用 7Dollar 主题', '7Dollar is not the active theme'))}</h4><p>${esc(T('下面的设置只在 7Dollar 主题下生效。', 'The settings below only apply to the 7Dollar theme.'))}</p><div class="right"><button type="button" class="btn primary" id="td-use">${esc(T('切换到 7Dollar', 'Use 7Dollar'))}</button></div></div>`}
 
 			<section class="td-card td-sect">
 				<h3 class="td-sect-t">${esc(T('配色', 'Palette'))}</h3>
-				<p class="td-sect-d">${esc(T('每套配色都有浅色和深色两种版本。', 'Every palette comes in light and dark.'))}</p>
 				<div class="td-palettes">${pal}</div>
-				<div class="td-row"><div class="lb"><b>${esc(T('显示模式', 'Mode'))}</b><small>${esc(T('“跟随系统”会随手机或电脑的深色模式自动切换', '“Auto” follows your device'))}</small></div>
+				<div class="td-row"><div class="lb"><b>${esc(T('显示模式', 'Mode'))}</b></div>
 					<div class="td-seg" id="td-modes"><button type="button" data-m="light">${esc(T('浅色', 'Light'))}</button><button type="button" data-m="dark">${esc(T('深色', 'Dark'))}</button><button type="button" data-m="auto">${esc(T('跟随系统', 'Auto'))}</button></div></div>
 			</section>
 
 			<section class="td-card td-sect">
 				<h3 class="td-sect-t">${esc(T('首页卡片', 'Home cards'))}</h3>
-				<p class="td-sect-d">${esc(T('选择总览页上显示哪些内容。“网络连接”始终显示。', 'Choose what the home page shows. “Connection” is always shown.'))}</p>
+				<p class="td-sect-d">${esc(T('“网络连接”卡片始终显示。', 'The Connection card is always shown.'))}</p>
 				<div class="td-rows">${cards}</div>
 			</section>
 
 			<section class="td-card td-sect">
 				<h3 class="td-sect-t">${esc(T('插件卡片', 'Plugin cards'))}</h3>
-				<p class="td-sect-d">${esc(T('默认全部关闭。只有在路由器上检测到对应插件时，才能打开。', 'Off by default. A card can only be turned on when its plugin is installed.'))}</p>
 				<div class="td-rows">${plugins}</div>
 			</section>
 
-			<div class="td-hint">${icon('info')}<span>${esc(T('想换回原来的主题？到 系统 → 通用 → 语言和界面 里选择即可，随时可以切回来。', 'Want the old theme back? Pick it under System → General → Language and Style.'))}</span></div>
+			<div class="td-hint">${icon('info')}<span>${esc(T('换回原主题：系统 → 通用 → 语言和界面', 'Switch back: System → General → Language and Style'))}</span></div>
 		</div>`);
 
 		this.root = root;

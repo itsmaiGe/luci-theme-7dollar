@@ -25,8 +25,8 @@ return view.extend({
 			</div>
 			<a class="btn" href="${L.url('admin/network/dhcp')}">${icon('lock')}${esc(T('给设备固定 IP', 'Reserve an IP'))}</a></div>
 			<div class="td-stats" id="td-dstats"></div>
-			<section class="td-card"><div class="td-card-h"><h3>${esc(T('在线', 'Online'))}</h3><span class="td-muted">${esc(T('每 5 秒刷新', 'Refreshes every 5 s'))}</span></div><div class="td-devlist" id="td-on"></div></section>
-			<section class="td-card" style="margin-top:18px" id="td-off-card"><div class="td-card-h"><h3>${esc(T('最近连接过', 'Recently seen'))}</h3><span class="td-muted">${esc(T('仍保留 IP 租约，但现在不在线', 'Still holding a lease, but offline'))}</span></div><div class="td-devlist" id="td-off"></div></section>
+			<section class="td-card"><div class="td-card-h"><h3>${esc(T('在线', 'Online'))}</h3></div><div class="td-devlist" id="td-on"></div></section>
+			<section class="td-card" style="margin-top:18px" id="td-off-card"><div class="td-card-h"><h3>${esc(T('最近连接过', 'Recently seen'))}</h3><span class="td-muted">${esc(T('有 IP 租约，当前离线', 'Leased, currently offline'))}</span></div><div class="td-devlist" id="td-off"></div></section>
 		</div>`);
 
 		this.root = root;

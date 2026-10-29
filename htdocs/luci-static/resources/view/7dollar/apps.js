@@ -31,7 +31,7 @@ return view.extend({
 			<div class="td-head"><div>
 				<p class="td-eyebrow">${esc(T('应用', 'Apps'))}</p>
 				<h1 class="td-serif">${esc(T('已安装的应用', 'Installed apps'))}</h1>
-				<p class="td-sub">${esc(pages.length ? T(`共 ${pages.length} 个。你装的插件都会自动出现在这里，主题不依赖其中任何一个。`, `${pages.length} installed. Plugins show up here automatically.`)
+				<p class="td-sub">${esc(pages.length ? T(`共 ${pages.length} 个`, `${pages.length} installed`)
 				                                     : T('还没有安装插件。', 'No plugins installed yet.'))}</p>
 			</div></div>
 			<div class="td-apps">${tiles}

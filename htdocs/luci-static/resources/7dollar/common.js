@@ -27,15 +27,16 @@ const callAssoc = rpc.declare({ object: 'iwinfo', method: 'assoclist', params: [
 const callIfDump = rpc.declare({ object: 'network.interface', method: 'dump', expect: { interface: [] } });
 const callBoard = rpc.declare({ object: 'system', method: 'board' });
 const callInfo = rpc.declare({ object: 'system', method: 'info' });
+const callService = rpc.declare({ object: 'service', method: 'list', params: [ 'name' ], expect: { '': {} } });
 
 const DEFAULTS = { palette: 'clay', mode: 'auto', hidden_cards: '', plugin_openclash: '0' };
 
 const PALETTES = [
-	[ 'clay',     T('陶土', 'Clay'),     T('温暖 · 默认', 'Warm · default') ],
-	[ 'celadon',  T('青瓷', 'Celadon'),  T('安静 · 清爽', 'Calm · fresh') ],
-	[ 'mist',     T('雾蓝', 'Mist'),     T('冷静 · 专注', 'Cool · focused') ],
-	[ 'dusk',     T('暮紫', 'Dusk'),     T('柔和 · 雅致', 'Soft · refined') ],
-	[ 'graphite', T('石墨', 'Graphite'), T('中性 · 极简', 'Neutral · minimal') ]
+	[ 'clay',     T('陶土', 'Clay') ],
+	[ 'celadon',  T('青瓷', 'Celadon') ],
+	[ 'mist',     T('雾蓝', 'Mist') ],
+	[ 'dusk',     T('暮紫', 'Dusk') ],
+	[ 'graphite', T('石墨', 'Graphite') ]
 ];
 
 /* Menu regrouping: native LuCI pages -> seven plain-language sections. */
@@ -481,6 +482,7 @@ return baseclass.extend({
 	readFile: readFile, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
 	sysinfo: () => L.resolveDefault(callInfo(), {}),
+	service: name => L.resolveDefault(callService(name), {}),
 	uciType: (config, type) => L.resolveDefault(callUciGetType(config, type), {}),
 	uciSection: (config, section) => L.resolveDefault(callUciGet(config, section), {}),
 	uciSet: (config, section, values) => callUciSet(config, section, values).then(() => callUciCommit(config))
