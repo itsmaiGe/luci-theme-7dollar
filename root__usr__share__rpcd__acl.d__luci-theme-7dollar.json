@@ -1,0 +1,31 @@
+{
+	"luci-theme-7dollar": {
+		"description": "Grant access to the 7Dollar theme dashboard and appearance settings",
+		"read": {
+			"ubus": {
+				"luci-rpc": [ "getDHCPLeases", "getHostHints", "getWirelessDevices" ],
+				"iwinfo": [ "assoclist" ],
+				"network.interface": [ "dump" ],
+				"system": [ "board", "info" ],
+				"uci": [ "get" ],
+				"file": [ "read", "exec" ]
+			},
+			"file": {
+				"/proc/stat": [ "read" ],
+				"/proc/net/dev": [ "read" ],
+				"/proc/net/arp": [ "read" ],
+				"/proc/sys/net/ipv4/tcp_congestion_control": [ "read" ],
+				"/sys/class/thermal/thermal_zone0/temp": [ "read" ],
+				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
+				"/bin/ping": [ "exec" ]
+			},
+			"uci": [ "7dollar", "firewall", "luci" ]
+		},
+		"write": {
+			"ubus": {
+				"uci": [ "add", "set", "delete", "commit" ]
+			},
+			"uci": [ "7dollar", "luci" ]
+		}
+	}
+}

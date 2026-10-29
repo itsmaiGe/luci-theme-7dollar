@@ -1,0 +1,5 @@
+
+config theme 'main'
+	option palette 'clay'
+	option mode 'auto'
+	option plugin_openclash '0'
