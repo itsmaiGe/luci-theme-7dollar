@@ -122,7 +122,7 @@ return baseclass.extend({
 		container.style.display = '';
 
 		if (active)
-			this.renderTabs(active, url + '/' + active.name, level + 1);
+			this.renderTabs(td.realNode(node, active), url + '/' + active.name, level + 1);
 	},
 
 	/* ---------- search (⌘K) ---------- */

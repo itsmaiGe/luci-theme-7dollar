@@ -123,6 +123,12 @@ function title(path, node) {
 	return node && node.title ? _(node.title) : path.split('/').pop();
 }
 
+/* ui.menu.getChildren() replaces alias nodes (e.g. Firewall → Zones) with a copy of
+ * their target, which drops the alias's own sub-pages. Always keep the real node. */
+function realNode(parent, child) {
+	return (parent.children && parent.children[child.name]) || child;
+}
+
 function flatten(tree) {
 	/* Returns [{ path, node, title, group }] for every navigable page. */
 	const admin = tree && tree.children && tree.children.admin;
@@ -131,7 +137,9 @@ function flatten(tree) {
 	if (!admin)
 		return out;
 
-	ui.menu.getChildren(admin).forEach(top => {
+	ui.menu.getChildren(admin).forEach(t => {
+		const top = realNode(admin, t);
+
 		if (top.name == 'logout')
 			return;
 
@@ -141,7 +149,7 @@ function flatten(tree) {
 		if (!kids.length)
 			out.push({ path: tpath, node: top });
 		else
-			kids.forEach(k => out.push({ path: tpath + '/' + k.name, node: k }));
+			kids.forEach(k => out.push({ path: tpath + '/' + k.name, node: realNode(top, k) }));
 	});
 
 	out.forEach(p => {
@@ -476,7 +484,7 @@ return baseclass.extend({
 	active: /\/7dollar$/.test(L.env.media || ''),
 	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS,
 	esc: esc, icon: icon, html: html,
-	flatten: flatten, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
+	flatten: flatten, realNode: realNode, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
 	readFile: readFile, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
