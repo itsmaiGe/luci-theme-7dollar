@@ -63,7 +63,6 @@ abbr[title]{text-decoration:underline dotted;cursor:help}
 svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .td-serif{font-family:var(--serif);font-weight:500;letter-spacing:-.01em}
 .td-muted{color:var(--ink-3)}
-html.td-noanim *,html.td-noanim *::before,html.td-noanim *::after{animation-duration:0s!important;animation-delay:0s!important;transition:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* headings: LuCI views put the page title in h2 */
@@ -186,8 +185,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn:focus-visible,.cbi-button:focus-visible{outline:0;box-shadow:0 0 0 4px var(--tint);border-color:var(--accent)}
 .btn:active,.cbi-button:active{transform:translateY(1px)}
 .btn[disabled],.cbi-button[disabled],button[disabled],input[disabled][type=button],input[disabled][type=submit]{opacity:.45;pointer-events:none;cursor:default}
-.btn.primary,.btn.important,.cbi-button-apply,.cbi-button-action.important,.cbi-button-positive.important,.cbi-section-actions .cbi-button-edit,.td-btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)!important}
-.btn.primary:hover,.btn.important:hover,.cbi-button-apply:hover,.cbi-button-action.important:hover,.cbi-button-positive.important:hover,.cbi-section-actions .cbi-button-edit:hover,.td-btn-primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.primary,.btn.important,.cbi-button-apply,.cbi-button-action.important,.cbi-button-positive.important,.cbi-section-actions .cbi-button-edit{background:var(--accent);border-color:var(--accent);color:var(--on-accent)!important}
+.btn.primary:hover,.btn.important:hover,.cbi-button-apply:hover,.cbi-button-action.important:hover,.cbi-button-positive.important:hover,.cbi-section-actions .cbi-button-edit:hover{background:var(--accent-2);border-color:var(--accent-2)}
 .cbi-button-positive,.cbi-button-save,.cbi-button-add,.cbi-button-fieldadd,.btn.success{color:var(--accent-2);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--surface)}
 .cbi-button-positive:hover,.cbi-button-save:hover,.cbi-button-add:hover,.cbi-button-fieldadd:hover{background:var(--tint);border-color:var(--accent)}
 .cbi-button-negative,.cbi-button-remove,.cbi-button-reset,.cbi-section-remove .cbi-button,.btn.danger,.btn.error{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,var(--line));background:var(--surface)}
@@ -196,8 +195,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cbi-button-up,.cbi-button-down{min-width:36px;padding:0 8px}
 .btn.large{min-height:46px;padding:0 20px;font-size:15px;border-radius:14px}
 .btn.small,.cbi-button.small{min-height:28px;padding:0 10px;font-size:12px;border-radius:8px}
-.btn.quiet,.td-btn-quiet{border-color:transparent;background:none}
-.btn.quiet:hover,.td-btn-quiet:hover{background:var(--hover);border-color:transparent}
+.btn.quiet{border-color:transparent;background:none}
+.btn.quiet:hover{background:var(--hover);border-color:transparent}
 .btn.block{width:100%}
 .close{float:right;font-size:20px;line-height:1;color:var(--ink-3);cursor:pointer;opacity:.7}
 .close:hover{opacity:1;text-decoration:none}
@@ -399,7 +398,7 @@ table table td,.cbi-value-field table td{border:0}
 #modal_overlay{position:fixed;top:0;bottom:0;left:-10000px;z-index:900;overflow:auto;background:rgba(20,20,19,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .18s ease-in}
 body.modal-overlay-active{overflow:hidden;height:100vh}
 body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:visible}
-.modal{width:92%;max-width:600px;min-width:270px;margin:9vh auto 5vh;padding:26px 28px 22px;background:var(--surface);color:var(--ink);border:1px solid var(--line-soft);border-radius:22px;box-shadow:var(--shadow-pop);animation:td-rise .3s var(--ease);line-height:1.6}
+.modal{width:92%;max-width:600px;min-width:270px;margin:9vh auto 5vh;padding:26px 28px 22px;background:var(--surface);color:var(--ink);border:1px solid var(--line-soft);border-radius:22px;box-shadow:var(--shadow-pop);animation:td-rise .3s var(--ease);line-height:1.6;container:main/inline-size}
 .modal>*{margin-bottom:12px;max-width:100%}
 .modal>*:last-child{margin-bottom:0}
 .modal>h4{font:500 22px/1.25 var(--serif);margin:0 0 14px}
@@ -546,7 +545,6 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
    Keyed to the width of the content area, not the viewport: the icon rail at 761–1100px leaves
    less room than a phone, so tables turn into cards wherever they would not fit. Modals are
    containers too, so dialogs follow their own width. */
-.modal{container:main/inline-size}
 @container main (max-width:700px){
   .cbi-section,.cbi-tblsection{padding:18px 16px;border-radius:18px}
   .table,#view>.table{display:flex;flex-direction:column}
@@ -605,7 +603,6 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
   .td-grid.has-oc .k-dev{grid-column:span 5}
   .td-grid.has-oc .k-wifi{grid-column:span 3}
   .k-proxy{grid-column:span 4}
-  .td-grid>.td-solo{grid-column:1/-1}
 }
 .td-card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:22px 24px;position:relative;overflow:hidden;min-width:0;container-type:inline-size;transition:background .3s,border-color .3s;animation:td-rise .45s var(--ease) both}
 .td-grid>.td-card:nth-child(2){animation-delay:.04s}.td-grid>.td-card:nth-child(3){animation-delay:.08s}.td-grid>.td-card:nth-child(4){animation-delay:.12s}.td-grid>.td-card:nth-child(5){animation-delay:.16s}.td-grid>.td-card:nth-child(n+6){animation-delay:.2s}
@@ -676,9 +673,6 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .td-band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line-soft);font-size:13.5px}
 .td-band>b{font-weight:500}
 .td-band>span{color:var(--ink-3);display:flex;gap:8px;align-items:center}
-.td-signal{display:inline-flex;gap:3px;align-items:flex-end;height:14px}
-.td-signal i{width:4px;border-radius:2px;background:var(--ok)}
-.td-signal i.off{background:var(--line)}
 
 /* plugin card */
 .td-seg{display:inline-flex;flex-wrap:wrap;padding:3px;border-radius:11px;background:var(--surface-2);gap:2px;max-width:100%}
