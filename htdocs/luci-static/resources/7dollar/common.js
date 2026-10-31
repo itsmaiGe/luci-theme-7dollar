@@ -319,6 +319,37 @@ function readFile(path) {
 	return L.resolveDefault(fs.read(path), null);
 }
 
+/* CPU temperature lives in different places per platform (thermal_zone0 on most SoCs,
+ * coretemp/k10temp hwmon on x86). Pick the best sensor once; later reads cost one file. */
+const TEMP_PREF = [ /^coretemp/, /^k10temp/, /^zenpower/, /^x86_pkg_temp/, /^cpu[-_]?thermal/, /^soc[-_]?thermal/, /^acpitz/ ];
+let tempPath;
+
+function tempSensor() {
+	if (tempPath !== undefined)
+		return Promise.resolve(tempPath);
+
+	const list = dir => L.resolveDefault(fs.list(dir), []).then(l => l.map(e => dir + '/' + e.name));
+	const rank = name => { const i = TEMP_PREF.findIndex(r => r.test(name)); return i < 0 ? TEMP_PREF.length : i };
+
+	return Promise.all([ list('/sys/class/thermal'), list('/sys/class/hwmon') ]).then(([ zones, hwmons ]) => Promise.all([].concat(
+		zones.filter(d => /thermal_zone\d+$/.test(d)).map(d => readFile(d + '/type').then(n => ({ name: n, path: d + '/temp' }))),
+		hwmons.map(d => readFile(d + '/name').then(n => ({ name: n, path: d + '/temp1_input' })))
+	))).then(found => {
+		/* Known CPU sensors first, then any thermal zone; never radio/PHY/disk sensors. */
+		const cands = found.filter(c => c.name).map(c => ({ path: c.path, r: rank(c.name.trim()) }))
+			.filter(c => c.r < TEMP_PREF.length || /thermal_zone/.test(c.path))
+			.sort((a, b) => a.r - b.r || (a.path < b.path ? -1 : 1));
+
+		const next = i => i >= cands.length ? null
+			: readFile(cands[i].path).then(v => +v > 0 ? cands[i].path : next(i + 1));
+		return next(0);
+	}).then(p => (tempPath = p));
+}
+
+function temperature() {
+	return tempSensor().then(p => p ? readFile(p) : null).then(v => +v > 0 ? +v / 1000 : null);
+}
+
 function wifiInfo() {
 	return L.resolveDefault(callWireless(), {}).then(radios => {
 		const aps = [];
@@ -487,7 +518,7 @@ return baseclass.extend({
 	flatten: flatten, realNode: realNode, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
-	readFile: readFile, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
+	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
 	sysinfo: () => L.resolveDefault(callInfo(), {}),
 	service: name => L.resolveDefault(callService(name), {}),

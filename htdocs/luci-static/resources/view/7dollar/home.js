@@ -197,9 +197,14 @@ return view.extend({
 		this.set('td-dns', td.dnsName(w.dns, w.gw));
 		this.set('td-wanup', w.uptime ? td.duration(w.uptime) : '—');
 
-		const tags = this.$('td-tags');
-		if (tags)
-			tags.innerHTML = this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join('') + `<span class="td-tag" id="td-boot">&nbsp;</span>`;
+		this.paintTags();
+	},
+
+	paintTags() {
+		const box = this.$('td-tags');
+		if (box)
+			box.innerHTML = this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join('')
+				+ (this.s.boot ? `<span class="td-tag">${esc(this.s.boot)}</span>` : '');
 	},
 
 	paintWifi(wifi) {
@@ -290,7 +295,8 @@ return view.extend({
 
 		if (d) {
 			this.s.last = { t: now, rx: d.rx, tx: d.tx };
-			this.set('td-boot', T(`本次开机 ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`, `Since boot ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`));
+			this.s.boot = T(`本次开机 ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`, `Since boot ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`);
+			this.paintTags();
 		}
 
 		this.paintRings();
@@ -348,12 +354,12 @@ return view.extend({
 	},
 
 	tick() {
-		return Promise.all([ td.readFile('/proc/net/dev'), td.readFile('/proc/stat'), td.readFile('/sys/class/thermal/thermal_zone0/temp') ]).then(([ dev, stat, temp ]) => {
+		return Promise.all([ td.readFile('/proc/net/dev'), td.readFile('/proc/stat'), td.temperature() ]).then(([ dev, stat, temp ]) => {
 			const c = td.cpuStat(stat);
 			if (c && this.s.cpu && c.total > this.s.cpu.total)
 				this.s.cpuPct = 100 * (1 - (c.idle - this.s.cpu.idle) / (c.total - this.s.cpu.total));
 			if (c) this.s.cpu = c;
-			if (temp && +temp) this.s.temp = +temp / 1000;
+			if (temp != null) this.s.temp = temp;
 			this.sample(dev);
 		});
 	},
