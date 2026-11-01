@@ -443,32 +443,39 @@ function clients(wifi) {
 	});
 }
 
+/* The uplink is whichever device carries the kernel's default route. Asking the kernel instead of
+ * netifd covers every layout (main router, bypass/side router, routes added by scripts). */
+function defaultRoute(text) {
+	let best = null;
+	String(text || '').split('\n').slice(1).forEach(line => {
+		const f = line.trim().split(/\s+/);
+		if (f[1] != '00000000' || f[7] != '00000000' || !(parseInt(f[3], 16) & 1)) return;
+		if (!best || +f[6] < best.metric)
+			best = { dev: f[0], metric: +f[6], gw: f[2].match(/../g).reverse().map(h => parseInt(h, 16)).join('.') };
+	});
+	return best;
+}
+
 function wan() {
-	return L.resolveDefault(callIfDump(), []).then(ifs => {
-		let best = null;
+	return Promise.all([ L.resolveDefault(callIfDump(), []), readFile('/proc/net/route') ]).then(([ ifs, rt ]) => {
+		const def = defaultRoute(rt);
+		const dev = i => i.l3_device || i.device;
 
-		(ifs || []).forEach(i => {
-			if (!i.up) return;
-			const def = (i.route || []).find(r => r.target == '0.0.0.0' && r.mask == 0);
-			if (def && (!best || (def.metric || 0) < best.metric))
-				best = { iface: i, metric: def.metric || 0, gw: def.nexthop };
-		});
-
-		if (!best) {
+		if (!def) {
 			const w = (ifs || []).find(i => i.interface == 'wan');
-			return w ? { up: false, name: 'wan', proto: w.proto, device: w.l3_device || w.device } : null;
+			return w ? { up: false, proto: w.proto, device: dev(w) } : null;
 		}
 
-		const i = best.iface;
+		const i = (ifs || []).filter(i => i.up && dev(i) == def.dev)
+			.sort((a, b) => !!(b['ipv4-address'] || []).length - !!(a['ipv4-address'] || []).length)[0] || {};
 
 		return {
 			up: true,
-			name: i.interface,
 			proto: i.proto,
-			device: i.l3_device || i.device,
+			device: def.dev,
 			ip: ((i['ipv4-address'] || [])[0] || {}).address,
 			ip6: ((i['ipv6-address'] || [])[0] || {}).address,
-			gw: best.gw,
+			gw: def.gw != '0.0.0.0' ? def.gw : null,
 			dns: i['dns-server'] || [],
 			uptime: i.uptime
 		};

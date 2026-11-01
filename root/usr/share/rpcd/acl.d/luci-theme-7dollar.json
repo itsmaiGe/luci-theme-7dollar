@@ -14,6 +14,7 @@
 			"file": {
 				"/proc/stat": [ "read" ],
 				"/proc/net/dev": [ "read" ],
+				"/proc/net/route": [ "read" ],
 				"/proc/net/arp": [ "read" ],
 				"/proc/sys/net/ipv4/tcp_congestion_control": [ "read" ],
 				"/sys/class/thermal": [ "list" ],
