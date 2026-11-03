@@ -42,7 +42,7 @@ const PALETTES = [
 
 /* Menu regrouping: native LuCI pages -> seven plain-language sections. */
 const GROUPS = [
-	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home' ] },
+	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home', 'admin/dashboard' ] },
 	{ id: 'devices', icon: 'devices', label: T('设备', 'Devices'), pages: [ 'admin/clients' ] },
 	{ id: 'wifi', icon: 'wifi', label: 'Wi‑Fi', pages: [ 'admin/network/wireless', 'admin/status/channel_analysis' ] },
 	{ id: 'internet', icon: 'globe', label: T('上网', 'Internet'),
@@ -61,6 +61,7 @@ const GROUPS = [
 
 const LABELS = {
 	'admin/home': T('总览', 'Overview'),
+	'admin/dashboard': T('官方仪表盘', 'Dashboard'),
 	'admin/clients': T('设备', 'Devices'),
 	'admin/apps': T('全部应用', 'All apps'),
 	'admin/network/wireless': T('无线网络', 'Wireless'),
@@ -497,15 +498,27 @@ function wan() {
 	return Promise.all([ L.resolveDefault(callIfDump(), []), readFile('/proc/net/route') ]).then(([ ifs, rt ]) => {
 		const def = defaultRoute(rt);
 		const dev = i => i.l3_device || i.device;
-		const lan = (ifs || []).find(i => i.interface == 'lan');
+		const list = ifs || [];
+		const lan = list.find(i => i.interface == 'lan');
+		const v4 = i => ((i['ipv4-address'] || [])[0] || {}).address;
+		const v6 = i => ((i['ipv6-address'] || []).find(a => !/^fe80:/i.test(a.address)) || {}).address;   // never the link-local one
 
 		if (!def) {
-			const w = (ifs || []).find(i => i.interface == 'wan');
+			const w = list.find(i => i.interface == 'wan');
 			return w ? { up: false, mode: 'wan', proto: w.proto, device: dev(w) } : null;
 		}
 
-		const i = (ifs || []).filter(i => i.up && dev(i) == def.dev)
+		const i = list.filter(i => i.up && dev(i) == def.dev)
 			.sort((a, b) => !!(b['ipv4-address'] || []).length - !!(a['ipv4-address'] || []).length)[0] || {};
+
+		/* Any other interface with a default route of its own (IPTV, a backup WAN) is another line.
+		 * The IPv6 half of the WAN (wan6) is not: it rides on the WAN's device or port with no IPv4 route. */
+		const deflt = (x, re) => (x.route || []).some(r => r.mask == 0 && re.test(r.target));
+		const port = n => String(n || '').split('.')[0];
+		const seen = new Set([ def.dev, lan && dev(lan) ]);
+		const more = list.filter(x => x.up && x.interface != 'loopback' && deflt(x, /^(0\.0\.0\.0|::)$/) && !seen.has(dev(x))
+		                         && (deflt(x, /^0\.0\.0\.0$/) || port(x.device) != port(i.device)) && seen.add(dev(x)))
+			.map(x => ({ name: x.interface.toUpperCase(), proto: x.proto, device: dev(x), port: x.device, ip: v4(x) || v6(x), uptime: x.uptime }));
 
 		return {
 			up: true,
@@ -514,26 +527,32 @@ function wan() {
 			proto: i.proto,
 			device: def.dev,
 			port: i.device,
-			ip: ((i['ipv4-address'] || [])[0] || {}).address,
-			ip6: ((i['ipv6-address'] || [])[0] || {}).address,
+			ip: v4(i),
+			ip6: v6(i),
 			gw: def.gw != '0.0.0.0' ? def.gw : null,
 			dns: i['dns-server'] || [],
-			uptime: i.uptime
+			uptime: i.uptime,
+			more: more
 		};
 	});
 }
 
-/* Physical Ethernet ports in use: the uplink port and whatever sits in a bridge (lan1…lan4, eth1, …).
- * Switch ports are "dsa" devices, a plain NIC is "ethernet". A VLAN on top (eth0.7, wan.10) counts
- * as its port. Empty on swconfig boxes, where the kernel only sees the CPU port. */
+/* Physical Ethernet ports in use: the uplink ports, named after their line (WAN, IPTV, ...), then
+ * whatever sits in a bridge (lan1…lan4, eth1, …). Switch ports are "dsa" devices, a plain NIC is
+ * "ethernet". A VLAN on top (eth0.7, wan.10) counts as its port. Empty on swconfig boxes, where
+ * the kernel only sees the CPU port. */
 function ports(up) {
 	const base = n => String(n || '').split('.')[0];
-	const upPorts = up && up.mode != 'side' ? [ base(up.port), base(up.device) ] : [];
+	const line = new Map();
+	const tag = (n, name) => (n = base(n)) && !line.has(n) && line.set(n, name);
+	if (up && up.mode != 'side') { tag(up.port, 'WAN'); tag(up.device, 'WAN'); }
+	((up && up.more) || []).forEach(u => { tag(u.port, u.name); tag(u.device, u.name); });
+	const order = [ ...line.keys() ], rank = n => { const k = order.indexOf(n); return k < 0 ? order.length : k };
 	return L.resolveDefault(callDevices(), {}).then(devs => Object.values(devs || {})
 		.filter(d => /^(ethernet|dsa)$/.test(d.devtype) && !d.wireless && d.name.indexOf('.') < 0 && !/^(docker|veth|br-)/.test(d.name)
-		          && (d.master || upPorts.includes(d.name)))
-		.map(d => ({ name: d.name, wan: upPorts.includes(d.name), up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
-		.sort((a, b) => (b.wan - a.wan) || a.name.localeCompare(b.name, 'en', { numeric: true })));
+		          && (d.master || line.has(d.name)))
+		.map(d => ({ name: d.name, line: line.get(d.name), up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
+		.sort((a, b) => (rank(a.name) - rank(b.name)) || a.name.localeCompare(b.name, 'en', { numeric: true })));
 }
 
 function connName(c) {

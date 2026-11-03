@@ -1,7 +1,7 @@
 {
 	"admin/home": {
 		"title": "Home",
-		"order": 1,
+		"order": 0,
 		"action": {
 			"type": "view",
 			"path": "7dollar/home"

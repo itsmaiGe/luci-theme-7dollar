@@ -14,6 +14,7 @@
 const T = td.T, icon = td.icon, esc = td.esc;
 const N = 60;
 const RING = 2 * Math.PI * 24;
+const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
 
 return view.extend({
 	load() {
@@ -148,6 +149,7 @@ return view.extend({
 						<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
 						<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 					</dl>
+					<div class="td-lines" id="td-lines"></div>
 				</section>
 
 				${rateCard}
@@ -202,7 +204,6 @@ return view.extend({
 
 	paintStatic() {
 		const w = this.s.wan;
-		const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
 		const bands = [...new Set((this.s.wifi.aps || []).filter(a => a.up && a.stations.length).map(a => td.bandName(a.band)))];
 
 		this.set('td-lan-t', this.s.mode == 'side' ? T('局域网', 'LAN') : bands.length ? 'Wi‑Fi ' + bands.join(' / ') : T('有线', 'Wired'));
@@ -215,6 +216,10 @@ return view.extend({
 			chip.className = ok ? 'td-chip' : 'td-chip bad';
 			chip.innerHTML = ok ? `<span class="td-dot live"></span>${esc(T('畅通', 'Online'))}` : `<span class="td-dot"></span>${esc(T('未连接', 'Offline'))}`;
 		}
+
+		/* further lines (IPTV, a backup WAN): one quiet row each under the main one */
+		const lines = ((w && w.more) || []).map(u => `<p><span class="td-dot"></span><b>${esc(u.name)}</b><span>${esc([ PROTO[u.proto] || u.proto, u.ip, u.uptime && td.duration(u.uptime) ].filter(Boolean).join(' · '))}</span></p>`).join('');
+		if (lines != this.s.lines) this.$('td-lines').innerHTML = this.s.lines = lines;
 
 		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
@@ -277,12 +282,12 @@ return view.extend({
 		if (!box) return Promise.resolve();
 		return td.ports(this.s.wan).then(list => {
 			if (!list.length) return box.closest('.td-card').remove();   // nothing the kernel can tell us (swconfig)
-			const lan = list.filter(p => !p.wan);
+			const lan = list.filter(p => !p.line);
 			let k = 0;
 			this.set('td-ports-n', T(`${list.filter(p => p.up).length} / ${list.length} 已接网线`, `${list.filter(p => p.up).length} of ${list.length} in use`));
 			box.innerHTML = list.map(p => {
 				const m = /^lan(\d+)$/.exec(p.name);
-				const name = p.wan ? 'WAN' : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
+				const name = p.line || (m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN');
 				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
 				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd>${esc(speed)}</dd></div>`;
 			}).join('');

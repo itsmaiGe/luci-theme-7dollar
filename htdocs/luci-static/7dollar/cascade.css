@@ -671,6 +671,10 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
+.td-lines{display:grid;gap:6px;margin-top:14px}.td-lines:empty{display:none}
+.td-lines p{display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink-3);min-width:0}
+.td-lines .td-dot{color:var(--ok)}.td-lines b{font-weight:500;color:var(--ink-2)}
+.td-lines span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* rate */
 .k-rate{display:flex;flex-direction:column}
@@ -679,7 +683,8 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-rate small i{width:8px;height:8px;border-radius:3px;background:var(--accent)}
 .td-rate.up small i{background:var(--second)}
 .td-rate.boot{margin-left:auto;text-align:right}.td-rate.boot small{justify-content:flex-end}.td-rate.boot span{font-size:14px;color:var(--ink-2);white-space:pre}
-.td-chart{display:block;margin:auto -24px -22px;padding-top:18px;width:calc(100% + 48px);height:136px;flex:none}
+/* the chart takes whatever height the card has, so a taller neighbour never leaves a gap above it */
+.td-chart{display:block;margin:0 -24px -22px;padding-top:18px;width:calc(100% + 48px);flex:1 0 136px}
 
 /* device rows */
 .td-dev{display:flex;align-items:center;gap:13px;padding:10px 0;border-top:1px solid var(--line-soft);min-width:0}
