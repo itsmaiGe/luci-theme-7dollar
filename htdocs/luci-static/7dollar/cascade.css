@@ -267,7 +267,7 @@ input[type=checkbox].cbi-input-invalid,input[type=radio].cbi-input-invalid{borde
 .cbi-value>.cbi-section,.cbi-value>.cbi-tblsection{flex:1 1 100%}
 div.cbi-value var,.td.cbi-value-field var{font-style:normal;color:var(--accent-2);font-family:var(--mono);font-size:.92em}
 div.cbi-value var[data-tooltip],.td.cbi-value-field var[data-tooltip],var.cbi-tooltip-container{cursor:help;border-bottom:1px dotted currentColor}
-.cbi-value-field .cbi-tooltip-container .cbi-tooltip{white-space:normal;color:var(--canvas);font-family:var(--sans)}
+var.cbi-tooltip-container .cbi-tooltip{white-space:normal;font-family:var(--sans)}   /* a tooltip inside <var> (firewall rules) must not inherit its mono font */
 .cbi-value-field>input+.cbi-button,.cbi-value-field>select+.cbi-button{margin-left:6px}
 .cbi-optionals,.cbi-section-create{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 0 0}
 .cbi-section-create>*{flex:0 1 auto;margin:0}
