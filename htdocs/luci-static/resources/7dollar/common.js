@@ -19,6 +19,7 @@ const callUciSet = rpc.declare({ object: 'uci', method: 'set', params: [ 'config
 const callUciAdd = rpc.declare({ object: 'uci', method: 'add', params: [ 'config', 'type', 'name', 'values' ] });
 const callUciDelete = rpc.declare({ object: 'uci', method: 'delete', params: [ 'config', 'section', 'options' ] });
 const callUciCommit = rpc.declare({ object: 'uci', method: 'commit', params: [ 'config' ] });
+const callFileRead64 = rpc.declare({ object: 'file', method: 'read', params: [ 'path', 'base64' ], expect: { data: '' } });
 const callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', expect: { '': {} } });
 const callHints = rpc.declare({ object: 'luci-rpc', method: 'getHostHints', expect: { '': {} } });
 const callWireless = rpc.declare({ object: 'luci-rpc', method: 'getWirelessDevices', expect: { '': {} } });
@@ -371,6 +372,23 @@ function readFile(path) {
 	return L.resolveDefault(fs.read(path), null);
 }
 
+/* MACs a bridge has heard from in the last few minutes: its forwarding table forgets a port after
+ * 300 s of silence, while an ARP entry can outlive a device by hours. Entries are 16 bytes
+ * (6 of MAC) in the binary brforward file. null when none of the devices is a bridge. */
+function heard(bridges) {
+	return Promise.all(bridges.map(b => L.resolveDefault(callFileRead64(`/sys/class/net/${b}/brforward`, true), null))).then(datas => {
+		let macs = null;
+		datas.forEach(d => {
+			if (d == null) return;
+			const bin = atob(d);
+			macs = macs || {};
+			for (let i = 0; i + 16 <= bin.length; i += 16)
+				macs[Array.from(bin.slice(i, i + 6), c => ('0' + c.charCodeAt(0).toString(16)).slice(-2)).join(':').toUpperCase()] = true;
+		});
+		return macs;
+	});
+}
+
 /* CPU temperature lives in different places per platform (thermal_zone0 on most SoCs,
  * coretemp/k10temp hwmon on x86). Pick the best sensor once; later reads cost one file. */
 const TEMP_PREF = [ /^coretemp/, /^k10temp/, /^zenpower/, /^x86_pkg_temp/, /^cpu[-_]?thermal/, /^soc[-_]?thermal/, /^acpitz/ ];
@@ -471,34 +489,39 @@ function clients(wifi, uplink) {
 
 		/* Wired devices are whatever answers ARP on our side, leased or not (static IPs, or a side
 		 * router whose DHCP is off), whatever the LAN is called (br-lan, eth0, br-lan.10 ...).
-		 * The gateway is the upstream router; containers and loopback are not devices either. */
-		String(arp || '').split('\n').slice(1).forEach(line => {
-			const f = line.trim().split(/\s+/);
-			if (f.length < 6 || f[2] != '0x2' || f[0] == up.gw || skip.includes(f[5]) || /^(lo|docker|veth)|^br-[0-9a-f]{12}$/.test(f[5]) || wifiMacs[f[3].toUpperCase()])
-				return;
-			const c = get(f[3]);
-			c.online = true;
-			c.conn = side ? 'lan' : 'wired';
-			c.ip = c.ip || f[0];
-		});
+		 * The gateway is the upstream router; containers and loopback are not devices either.
+		 * The bridge's own table then drops whoever has gone quiet (a Wi-Fi device that left). */
+		const rows = String(arp || '').split('\n').slice(1).map(line => line.trim().split(/\s+/)).filter(f =>
+			f.length >= 6 && f[2] == '0x2' && f[0] != up.gw && !skip.includes(f[5]) && !/^(lo|docker|veth)|^br-[0-9a-f]{12}$/.test(f[5]) && !wifiMacs[f[3].toUpperCase()]);
+		const bridges = [ ...new Set(rows.map(f => f[5].replace(/\.\d+$/, ''))) ];
 
-		for (const mac in (hints || {})) {
-			const h = hints[mac], c = byMac[mac.toUpperCase()];
-			if (c) {
-				c.name = c.name || h.name;
-				c.ip = c.ip || (h.ipaddrs || h.ipv4 || [])[0];
+		return heard(bridges).then(macs => {
+			rows.forEach(f => {
+				if (macs && !macs[f[3].toUpperCase()]) return;
+				const c = get(f[3]);
+				c.online = true;
+				c.conn = side ? 'lan' : 'wired';
+				c.ip = c.ip || f[0];
+			});
+
+			for (const mac in (hints || {})) {
+				const h = hints[mac], c = byMac[mac.toUpperCase()];
+				if (c) {
+					c.name = c.name || h.name;
+					c.ip = c.ip || (h.ipaddrs || h.ipv4 || [])[0];
+				}
 			}
-		}
 
-		const list = Object.values(byMac).map(c => {
-			c.display = pretty(c.name) || c.ip || c.mac;
-			c.kind = kind(c.name);
-			return c;
+			const list = Object.values(byMac).map(c => {
+				c.display = pretty(c.name) || c.ip || c.mac;
+				c.kind = kind(c.name);
+				return c;
+			});
+
+			list.sort((a, b) => (b.online - a.online) || ((b.link || 0) - (a.link || 0)) || a.display.localeCompare(b.display));
+
+			return list;
 		});
-
-		list.sort((a, b) => (b.online - a.online) || ((b.link || 0) - (a.link || 0)) || a.display.localeCompare(b.display));
-
-		return list;
 	});
 }
 

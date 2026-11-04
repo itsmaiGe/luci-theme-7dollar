@@ -40,7 +40,7 @@ jobs:
             for f in /proc/stat /proc/net/dev /proc/net/route /proc/net/arp; do
               rpc "[\"$S\",\"file\",\"read\",{\"path\":\"$f\"}]" | grep -q '"result":\[0,' || { echo "denied: $f"; exit 1; }
             done
-            for f in /sys/devices/virtual/thermal/thermal_zone0/temp /sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input; do
+            for f in /sys/devices/virtual/thermal/thermal_zone0/temp /sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input /sys/devices/virtual/net/br-lan/brforward; do
               ubus call session access "{\"ubus_rpc_session\":\"$S\",\"scope\":\"file\",\"object\":\"$f\",\"function\":\"read\"}" | grep -q true || { echo "denied: $f"; exit 1; }
             done
             apk del luci-theme-7dollar
