@@ -118,7 +118,11 @@ return view.extend({
 		const rateCard = card('rate', 'k-rate', `
 					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
 					<div class="td-rates">${rates}</div>
-					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`);
+					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true">
+						<defs><linearGradient id="td-gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.26"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>
+						<path fill="url(#td-gd)"/><path fill="none" style="stroke:var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+						${mode == 'side' ? '' : '<path fill="none" style="stroke:var(--second)" stroke-width="1.6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>'}
+					</svg>`);
 
 		/* Cards below the top row, in reading order. Each goes into whichever column is shorter so far
 		 * (rough heights), so the two columns stay balanced whatever is hidden or missing. */
@@ -220,6 +224,11 @@ return view.extend({
 		if (el && el.textContent !== String(text)) el.textContent = text;
 	},
 
+	/* innerHTML only when it changed: polled cards keep their DOM (and hover state) between ticks */
+	put(el, html) {
+		if (el && el._html !== html) el.innerHTML = el._html = html;
+	},
+
 	greet() {
 		const d = new Date(), h = d.getHours();
 		const hi = T(h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好',
@@ -247,7 +256,7 @@ return view.extend({
 
 		/* further lines (IPTV, a backup WAN): one quiet row each under the main one */
 		const lines = ((w && w.more) || []).map(u => `<p><span class="td-dot"></span><b>${esc(u.name)}</b><span>${esc([ PROTO[u.proto] || u.proto, u.ip, u.uptime && td.duration(u.uptime) ].filter(Boolean).join(' · '))}</span></p>`).join('');
-		if (lines != this.s.lines) this.$('td-lines').innerHTML = this.s.lines = lines;
+		this.put(this.$('td-lines'), lines);
 
 		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
@@ -264,8 +273,7 @@ return view.extend({
 
 	paintTags() {
 		const box = this.$('td-tags');
-		if (box)
-			box.innerHTML = this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join('');
+		this.put(box, this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join(''));
 	},
 
 	paintWifi(wifi) {
@@ -297,13 +305,13 @@ return view.extend({
 		if (guest)
 			tiles.push(tile(T('访客网络', 'Guest network'), guest.up ? devs(guest.stations.length) : T('未开启', 'Off'), guest.ssid, !guest.up));
 
-		box.innerHTML = (main
+		this.put(box, (main
 			? `<div class="td-ssid">${esc(main.ssid || '—')}</div><p class="td-muted td-ssid-s">${esc(n + ' ' + T('台设备已连接', n == 1 ? 'device connected' : 'devices connected'))}</p>`
 			: `<div class="td-ssid td-muted">${esc(T('未开启', 'Off'))}</div><p class="td-muted td-ssid-s">${esc(T('这台路由器还没有开启无线网络', 'No wireless network is enabled'))}</p>`)
-			+ (tiles.length ? `<dl class="td-kv">${tiles.join('')}</dl>` : '');
+			+ (tiles.length ? `<dl class="td-kv">${tiles.join('')}</dl>` : ''));
 	},
 
-	/* ---------- ports and storage: one port query every 30 s, storage comes with the system info we already poll ---------- */
+	/* ---------- ports and storage: ports, apps and the gateway ping every 30 s; storage comes with the system info we already poll ---------- */
 
 	refreshPorts() {
 		const box = this.$('td-ports');
@@ -313,12 +321,12 @@ return view.extend({
 			const lan = list.filter(p => !p.line);
 			let k = 0;
 			this.set('td-ports-n', T(`${list.filter(p => p.up).length} / ${list.length} 已接网线`, `${list.filter(p => p.up).length} of ${list.length} in use`));
-			box.innerHTML = list.map(p => {
+			this.put(box, list.map(p => {
 				const m = /^lan(\d+)$/.exec(p.name);
 				const name = p.line || (m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN');
 				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
 				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd>${esc(speed)}</dd></div>`;
-			}).join('');
+			}).join(''));
 		});
 	},
 
@@ -333,7 +341,7 @@ return view.extend({
 				`${td.bytes((d.avail != null ? d.avail : d.free) * 1024)} free of ${td.bytes(d.total * 1024)}`))}</span></p><div class="td-bar${pct >= 90 ? ' full' : ''}"><i style="width:${pct}%"></i></div></div>`;
 		};
 		const html = row(T('系统空间', 'System'), info.root) + row(T('临时文件', 'Temporary files'), info.tmp) + row(T('虚拟内存', 'Swap'), info.swap);
-		if (html != this.s.disk) box.innerHTML = this.s.disk = html;
+		this.put(box, html);
 	},
 
 	refreshClients() {
@@ -348,7 +356,7 @@ return view.extend({
 			if (!box) return;
 
 			const top = online.slice(0, 6);
-			box.innerHTML = top.length ? top.map(c => {
+			this.put(box, top.length ? top.map(c => {
 				const [ sig ] = td.signal(c.signal);
 				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : td.connName(c) + (c.ip && c.ip != c.display ? ' · ' + c.ip : '');
 				const rt = c.conn == 'wifi' && c.link
@@ -356,7 +364,7 @@ return view.extend({
 					: `${esc(c.conn == 'lan' ? T('局域网', 'LAN') : T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
 				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(T('连接速率 · 信号强度', 'Link rate · signal'))}">${rt}</div></div>`;
 			}).join('') + (online.length > 6 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 6} 台设备`, `${online.length - 6} more`))}</a>` : '')
-			: `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
+			: `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`);
 		});
 	},
 
@@ -416,10 +424,10 @@ return view.extend({
 			return close ? s + `L${W},${H}L0,${H}Z` : s;
 		};
 
-		svg.innerHTML = `<defs><linearGradient id="td-gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.26"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>`
-			+ `<path d="${path(down, true)}" fill="url(#td-gd)"/>`
-			+ `<path d="${path(down)}" fill="none" style="stroke:var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>`
-			+ (this.s.mode == 'side' ? '' : `<path d="${path(up)}" fill="none" style="stroke:var(--second)" stroke-width="1.6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`);
+		const [ fill, line, upLine ] = svg.querySelectorAll('path');
+		fill.setAttribute('d', path(down, true));
+		line.setAttribute('d', path(down));
+		if (upLine) upLine.setAttribute('d', path(up));
 	},
 
 	paintRings() {
@@ -471,8 +479,7 @@ return view.extend({
 			this.paintWifi(wifi);
 			this.paintStatic();
 			this.paintDisk();
-			this.pingGateway();
-			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : Promise.all([ this.refreshPorts(), this.paintApps() ]) ]);
+			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : Promise.all([ this.refreshPorts(), this.paintApps(), this.pingGateway() ]) ]);
 		});
 	},
 
@@ -482,8 +489,8 @@ return view.extend({
 			this.set('td-lat', w && w.up ? T('已连接', 'Connected') : T('未连接', 'Offline'));
 			return Promise.resolve();
 		}
-		/* a gateway that never answers ping (many ISP modems) is retried once a minute, not every 10 s */
-		if (this.s.miss >= 3 && this.ticks % 6) return Promise.resolve();
+		/* a gateway that never answers ping (many ISP modems) is retried every few minutes, not every 30 s */
+		if (this.s.miss >= 3 && this.ticks % 18) return Promise.resolve();
 		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
 			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
 			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
