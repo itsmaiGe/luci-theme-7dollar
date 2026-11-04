@@ -134,7 +134,7 @@ make menuconfig   # LuCI → Themes → luci-theme-7dollar
 make package/luci-theme-7dollar/compile V=s
 ```
 
-不使用 SDK 时，可在 macOS / Linux 上运行 `./scripts/build-ipk.sh` 生成 ipk；apk 由 GitHub Actions 在 OpenWrt 25.12 镜像中构建并测试安装（见 `.github/workflows/apk.yml`）。两者都输出到 `dist/`。
+不使用 SDK 时，可在 macOS / Linux 上运行 `./scripts/build-ipk.sh` 生成 ipk（需要 Node.js，打包时用 esbuild 压缩 JS / CSS，源码不变）；apk 由 GitHub Actions 在 OpenWrt 25.12 镜像中构建并测试安装（见 `.github/workflows/apk.yml`）。两者都输出到 `dist/`。
 </details>
 
 ## 使用
