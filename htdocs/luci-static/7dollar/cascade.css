@@ -698,7 +698,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-run .nm a{color:inherit;text-decoration:none}.td-run .nm a:hover b{color:var(--accent)}
 .td-run .rt{width:auto;color:var(--ink-2)}a.rt{display:inline-flex;align-items:center;gap:4px;text-decoration:none!important}a.rt:hover{color:var(--accent)}
 .td-run .td-seg{padding:2px;border-radius:9px}.td-run .td-seg button{min-height:26px;padding:0 10px;font-size:12px;border-radius:7px}
-@container (max-width:420px){.td-run{flex-wrap:wrap}.td-run :is(.rt,.td-seg){flex-basis:100%;margin-left:49px;text-align:left}.td-run .td-seg button{flex:1}}
+@container (max-width:420px){.td-run{flex-wrap:wrap}.td-run :is(.rt,.td-seg){flex-basis:calc(100% - 49px);margin-left:49px;text-align:left}.td-run .td-seg button{flex:1}}
 /* A wide device card lists two per row instead of stretching each row across the screen. */
 @container (min-width:760px){#td-devs{display:grid;grid-template-columns:1fr 1fr;column-gap:40px}#td-devs>:not(.td-dev){grid-column:1/-1}#td-devs>.td-dev:nth-child(2){border-top:0;padding-top:0}}
 .td-bar{height:4px;border-radius:4px;background:var(--surface-2);margin-top:5px;overflow:hidden}
@@ -749,6 +749,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-tag svg{width:14px;height:14px;color:var(--ok)}
 .td-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @container (min-width:620px){.td-acts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:300px){.td-acts{grid-template-columns:1fr}}
 .td-act{display:flex;gap:12px;align-items:center;padding:14px;border-radius:var(--r-md);background:var(--canvas);text-align:left;transition:background var(--fast) var(--ease),transform var(--fast) var(--ease);min-width:0;color:var(--ink)!important;text-decoration:none!important}
 .td-act:hover{background:var(--hover);transform:translateY(-1px)}
 .td-act svg{color:var(--accent);flex:none}

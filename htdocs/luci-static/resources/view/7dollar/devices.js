@@ -81,7 +81,8 @@ return view.extend({
 			b.setAttribute('aria-pressed', k == this.view);
 			if (k == this.view) rows = sel;
 		});
-		$('td-dlist').innerHTML = rows.length ? rows.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(T('这里暂时没有设备', 'No devices here'))}</div>`;
+		const box = $('td-dlist'), html = rows.length ? rows.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(T('这里暂时没有设备', 'No devices here'))}</div>`;
+		if (box._html !== html) box.innerHTML = box._html = html;   // every 5 s, but the DOM only moves when something changed
 	},
 
 	handleSave: null,

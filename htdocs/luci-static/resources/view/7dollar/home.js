@@ -288,7 +288,7 @@ return view.extend({
 		/* The headline is the network people mostly join: 5 GHz first (2.4 GHz is often the
 		 * smart-home one), never the guest network. A band with another name shows it on its tile. */
 		const rank = ap => (ap.up ? 10 : 0) + (ap == guest ? -5 : 0) + ({ '5g': 3, '6g': 2, '2g': 1 }[ap.band] || 0);
-		const main = aps.slice().sort((a, b) => rank(b) - rank(a))[0];
+		const main = aps.filter(ap => ap.up).sort((a, b) => rank(b) - rank(a))[0];
 		const tile = (label, value, sub, off) => `<div${off ? ' class="off"' : ''}><dt>${esc(label)}</dt><dd>${esc(value)}</dd>${sub ? `<dd>${esc(sub)}</dd>` : ''}</div>`;
 
 		const tiles = Object.keys(radios).sort((a, b) => String((radios[a].config || {}).band).localeCompare(String((radios[b].config || {}).band))).map(r => {
@@ -473,9 +473,8 @@ return view.extend({
 	slow() {
 		return Promise.all([ td.sysinfo(), td.wan(), this.s.hasWifi ? td.wifiInfo() : this.s.wifi ]).then(([ info, wan, wifi ]) => {
 			this.s.info = info;
-			const was = this.s.wan && this.s.wan.up;
 			this.s.wan = wan;
-			if (!!(wan && wan.up) != !!was) { this.greet(); }
+			this.greet();   // the hour, the date and the online state all change over a long session; it only writes what differs
 			this.paintWifi(wifi);
 			this.paintStatic();
 			this.paintDisk();
@@ -500,23 +499,22 @@ return view.extend({
 		});
 	},
 
-	/* ---------- apps card: one procd query; rows rebuilt only when the set of running apps changes ---------- */
+	/* ---------- apps card: one procd query plus a config read per running app, every 30 s; the DOM is touched only when something changed ---------- */
 
 	paintApps() {
 		const box = this.$('td-apps');
 		if (!box) return Promise.resolve();
 		return td.services().then(all => {
 			const live = this.s.apps.map(p => [ p, td.service(all, p.path) ]).filter(([ , s ]) => s && s.running);
-			const key = live.map(([ p ]) => p.path).join();
-			if (key == this.s.appsKey) return;
-			this.s.appsKey = key;
 			return Promise.all(live.map(([ p, s ]) => (APPS[s.name.toLowerCase()] || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
-				box.innerHTML = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
+				const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
 					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running'), x.sub ].filter(Boolean).join(' · '))}</small></div>
 					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button></div>`
 					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console'))}${icon('arrow')}</a>`
 					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
 					: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running'))}</div>`;
+				if (box._html === html) return;
+				this.put(box, html);
 				box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
 			});
 		});
