@@ -28,9 +28,18 @@ const callDevices = rpc.declare({ object: 'luci-rpc', method: 'getNetworkDevices
 const callIfDump = rpc.declare({ object: 'network.interface', method: 'dump', expect: { interface: [] } });
 const callBoard = rpc.declare({ object: 'system', method: 'board' });
 const callInfo = rpc.declare({ object: 'system', method: 'info' });
-const callService = rpc.declare({ object: 'service', method: 'list', params: [ 'name' ], expect: { '': {} } });
+const callServices = rpc.declare({ object: 'service', method: 'list', expect: { '': {} } });
+const callMounts = rpc.declare({ object: 'luci', method: 'getMountPoints', expect: { result: [] } });
 
-const DEFAULTS = { palette: 'clay', mode: 'auto', hidden_cards: '', plugin_openclash: '0' };
+const DEFAULTS = { palette: 'clay', mode: 'auto', hidden_cards: '', shown_cards: '' };
+const OPT_IN = [ 'apps' ];   // cards that are off until switched on (they show plugin information)
+
+const words = s => String(s || '').split(/[\s,]+/).filter(Boolean);
+
+/* Whether a home card is on: normal cards unless hidden, opt-in cards only when shown. */
+function cardOn(conf, key) {
+	return OPT_IN.indexOf(key) > -1 ? words(conf.shown_cards).indexOf(key) > -1 : words(conf.hidden_cards).indexOf(key) < 0;
+}
 
 const PALETTES = [
 	[ 'clay',     T('陶土', 'Clay') ],
@@ -205,6 +214,19 @@ function appIcon(path) {
 		if (re.test(path))
 			return id;
 	return 'grid';
+}
+
+/* The procd service behind an app page, matched by name (services/openclash ↔ openclash,
+ * nas/ksmbd ↔ ksmbd, services/upnp ↔ miniupnpd): { name, running }, or null if none fits. */
+function service(services, path) {
+	const leaf = path.split('/').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+	const name = Object.keys(services || {}).find(k => {
+		const s = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+		return s == leaf || (leaf.length > 3 && s.indexOf(leaf) > -1) || (s.length > 3 && leaf.indexOf(s) > -1);
+	});
+	if (!name) return null;
+	const inst = services[name].instances || {};
+	return { name: name, running: Object.keys(inst).some(k => inst[k].running) };
 }
 
 /* ---------------- settings (stored in /etc/config/7dollar) ---------------- */
@@ -594,19 +616,21 @@ function cpuStat(text) {
 	return { idle: idle, total: f.reduce((a, b) => a + b, 0) };
 }
 
+const uciType = (config, type) => L.resolveDefault(callUciGetType(config, type), {});
+const uciSection = (config, section) => L.resolveDefault(callUciGet(config, section), {});
+
 return baseclass.extend({
 	ZH: ZH, T: T, media: MEDIA, sprite: SPRITE,
 	active: /\/7dollar$/.test(L.env.media || ''),
-	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS,
+	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS, OPT_IN: OPT_IN, words: words, cardOn: cardOn,
 	esc: esc, icon: icon, html: html,
-	flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
+	flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon, service: service,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty, connName: connName,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, ports: ports, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
 	sysinfo: () => L.resolveDefault(callInfo(), {}),
-	service: name => L.resolveDefault(callService(name), {}),
-	uciType: (config, type) => L.resolveDefault(callUciGetType(config, type), {}),
-	uciSection: (config, section) => L.resolveDefault(callUciGet(config, section), {}),
+	services: () => L.resolveDefault(callServices(), {}), mounts: () => L.resolveDefault(callMounts(), []),
+	uciType: uciType, uciSection: uciSection,
 	uciSet: (config, section, values) => callUciSet(config, section, values).then(() => callUciCommit(config))
 });

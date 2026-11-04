@@ -695,6 +695,10 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-dev .nm small{color:var(--ink-3);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-dev .rt{text-align:right;font-size:13px;width:clamp(72px,24cqi,120px);flex:none;color:var(--ink);white-space:nowrap}
 .td-dev .rt.idle{color:var(--ink-3)}
+.td-run .nm a{color:inherit;text-decoration:none}.td-run .nm a:hover b{color:var(--accent)}
+.td-run .rt{width:auto;color:var(--ink-2)}a.rt{display:inline-flex;align-items:center;gap:4px;text-decoration:none!important}a.rt:hover{color:var(--accent)}
+.td-run .td-seg{padding:2px;border-radius:9px}.td-run .td-seg button{min-height:26px;padding:0 10px;font-size:12px;border-radius:7px}
+@container (max-width:420px){.td-run{flex-wrap:wrap}.td-run :is(.rt,.td-seg){flex-basis:100%;margin-left:49px;text-align:left}.td-run .td-seg button{flex:1}}
 /* A wide device card lists two per row instead of stretching each row across the screen. */
 @container (min-width:760px){#td-devs{display:grid;grid-template-columns:1fr 1fr;column-gap:40px}#td-devs>:not(.td-dev){grid-column:1/-1}#td-devs>.td-dev:nth-child(2){border-top:0;padding-top:0}}
 .td-bar{height:4px;border-radius:4px;background:var(--surface-2);margin-top:5px;overflow:hidden}
@@ -712,8 +716,6 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-seg button{min-height:30px;padding:0 14px;border-radius:9px;color:var(--ink-2);font-size:13px;white-space:nowrap;background:none;border:0;cursor:pointer}
 .td-seg button:hover{color:var(--ink)}
 .td-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:500}
-.k-proxy .td-seg{display:flex;margin-bottom:18px}
-.k-proxy .td-seg button{flex:1}
 .td-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin:0 0 16px}
 .td-kv>div{background:var(--canvas);border-radius:12px;padding:10px 12px;min-width:0}
 .td-kv dt{font-size:12px;color:var(--ink-3)}

@@ -7,13 +7,51 @@
 'require 7dollar.common as td';
 
 /*
- * 7Dollar home dashboard. Only router data by default; plugin cards are opt-in.
- * Plugin cards read config/procd state once and never poll the plugin itself.
+ * 7Dollar home dashboard. Only router data by default. The opt-in apps card lists whatever
+ * plugins are running: name from the menu, state from procd, no polling of the plugins.
  */
 
 const T = td.T, icon = td.icon, esc = td.esc;
 const N = 60;
 const RING = 2 * Math.PI * 24;
+
+/* One line of what matters most for the popular apps, read from their config (never their API);
+ * every other app shows name and state only. Keyed by procd service name. */
+const MODE = {
+	rule: T('按规则', 'Rule'), global: T('全局', 'Global'), direct: T('直连', 'Direct'), all: T('全局', 'Global'), custom: T('自定义', 'Custom'),
+	gfw: T('GFW 列表', 'GFW list'), gfwlist: T('GFW 列表', 'GFW list'), router: T('绕过大陆', 'Bypass mainland'), bypass_mainland_china: T('绕过大陆', 'Bypass mainland'),
+	proxy_mainland_china: T('只代理大陆', 'Mainland only'), oversea: T('海外模式', 'Overseas'),
+	none: T('未接管 DNS', 'DNS not taken over'), redirect: T('接管 53 端口', 'Takes over port 53'), 'dnsmasq-upstream': T('dnsmasq 上游', 'dnsmasq upstream'), exchange: T('替换 dnsmasq', 'Replaces dnsmasq')
+};
+const sec = (cfg, s) => s[0] == '@' ? td.uciType(cfg, s.slice(1)).then(a => Object.values(a)[0] || {}) : td.uciSection(cfg, s);
+const plain = (cfg, s, f) => () => sec(cfg, s).then(c => ({ sub: f(c) }));
+/* current node: the section named in `key`, shown by its `label` field */
+const node = (cfg, s, key, label, more) => () => sec(cfg, s).then(c => (c[key] && c[key] != 'nil' ? td.uciSection(cfg, c[key]) : Promise.resolve({}))
+	.then(n => ({ sub: [ n[label] || (c[key] != 'nil' && c[key]) || T('未选节点', 'No node'), more && more(c) ].filter(Boolean).join(' · ') })));
+const panel = port => ({ link: `http://${location.hostname}:${port}/` });
+const shares = (cfg, type) => () => Promise.all([ td.uciType(cfg, type), td.mounts() ]).then(([ s, m ]) => {
+	const list = Object.values(s).filter(x => x.path);
+	const disk = p => m.filter(x => x.mount == '/' || x.mount == p || p.indexOf(x.mount + '/') == 0).sort((a, b) => b.mount.length - a.mount.length)[0];
+	const d = list.map(x => disk(x.path)).find(Boolean);
+	return { sub: list.map(x => x.name).join(' · '), rt: d && d.size ? T(`剩余 ${td.bytes(d.avail)} / 共 ${td.bytes(d.size)}`, `${td.bytes(d.avail)} free of ${td.bytes(d.size)}`) : '' };
+});
+const APPS = {
+	openclash: () => td.uciSection('openclash', 'config').then(c => ({
+		sub: String(c.en_mode || c.operation_mode || '').replace(/^fake-ip/, 'Fake-IP').replace(/^redir-host/, 'Redir-Host').replace(/-(tun|mix)$/, s => ' · ' + s.slice(1).toUpperCase()),
+		seg: c.proxy_mode || 'rule' })),
+	passwall: node('passwall', '@global', 'tcp_node', 'remarks'),
+	passwall2: node('passwall2', '@global', 'node', 'remarks'),
+	shadowsocksr: node('shadowsocksr', '@global', 'global_server', 'alias', c => MODE[c.run_mode]),
+	homeproxy: node('homeproxy', 'config', 'main_node', 'label', c => MODE[c.routing_mode]),
+	nikki: plain('nikki', 'mixin', c => MODE[c.mode]),
+	adguardhome: () => td.uciSection('AdGuardHome', 'AdGuardHome').then(c => Object.assign({ sub: MODE[c.redirect] }, panel(c.httpport || 3000))),
+	openbox: () => td.readFile('/opt/open-box/data/panel-port').then(p => panel(+String(p || '').trim() || 2026)),
+	mosdns: plain('mosdns', 'config', c => c.listen_port && T('端口 ', 'Port ') + c.listen_port),
+	smartdns: plain('smartdns', '@smartdns', c => c.port && T('端口 ', 'Port ') + c.port),
+	bandix: plain('bandix', 'general', c => c.iface && T('监控 ', 'Watching ') + c.iface),
+	ksmbd: shares('ksmbd', 'share'),
+	samba4: shares('samba4', 'sambashare')
+};
 const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
 
 return view.extend({
@@ -38,15 +76,14 @@ return view.extend({
 	},
 
 	render([ conf, board, info, wan, [ menu, wifi ], fw, wed, cc, stat, dev ]) {
-		const hidden = String(conf.hidden_cards || '').split(/[\s,]+/).filter(Boolean);
-		const showOC = conf.plugin_openclash == '1' && td.menuHas(menu, 'services/openclash');
+		const apps = td.flatten(menu).filter(p => p.group == 'apps' && p.path != 'admin/apps');
 		const mode = wan && wan.up ? wan.mode : 'wan';
 		const software = td.software(menu);
 
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, oc: showOC, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode
+			clients: [], ping: null, apps: apps, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
@@ -57,9 +94,8 @@ return view.extend({
 		if (/bbr/.test(cc || '')) tags.push(T('BBR 拥塞控制', 'BBR congestion control'));
 		this.s.tags = tags;
 
-		this.hidden = hidden;
 		let n = 1;
-		const card = (key, cls, inner) => hidden.indexOf(key) > -1 ? '' : `<section class="td-card ${cls}" data-card="${key}" style="--i:${n++}">${inner}</section>`;
+		const card = (key, cls, inner) => !td.cardOn(conf, key) ? '' : `<section class="td-card ${cls}" data-card="${key}" style="--i:${n++}">${inner}</section>`;
 		const col = c => c.length ? `<div class="td-col">${c.join('')}</div>` : '';
 
 		/* Topology follows how this box is wired: main router (upstream → this → devices) or
@@ -86,7 +122,7 @@ return view.extend({
 
 		/* Cards below the top row, in reading order. Each goes into whichever column is shorter so far
 		 * (rough heights), so the two columns stay balanced whatever is hidden or missing. */
-		const H = { dev: 6, wifi: 4, sys: 3.5, oc: 4, ports: 2, disk: 2, actions: 3 }, cols = [ [], [] ], h = [ 0, 0 ];
+		const H = { dev: 6, wifi: 4, sys: 3.5, apps: 3, ports: 2, disk: 2, actions: 3 }, cols = [ [], [] ], h = [ 0, 0 ];
 		for (const [ k, html ] of [
 			[ 'dev', card('dev', 'k-dev', `
 					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
@@ -102,17 +138,9 @@ return view.extend({
 						${this.ring('temp', T('温度', 'Temperature'), 'warm')}
 					</div>
 					<div class="td-tags" id="td-tags"></div>`) ],
-			[ 'oc', showOC ? `<section class="td-card k-proxy" data-card="oc" style="--i:${n++}">
-					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
-					<dl class="td-kv">
-						<div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div>
-						<div><dt>${esc(T('配置文件', 'Config'))}</dt><dd id="td-oc-cfg">—</dd></div>
-					</dl>
-					<div class="td-seg" id="td-oc-seg">
-						<button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button>
-					</div>
-					<a class="btn block" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
-				</section>` : '' ],
+			[ 'apps', apps.length ? card('apps', 'k-apps', `
+					<div class="td-card-h"><h3>${esc(T('应用', 'Apps'))}</h3><a href="${L.url('admin/apps')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
+					<div id="td-apps"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`) : '' ],
 			[ 'ports', card('ports', 'k-ports', `
 					<div class="td-card-h"><h3>${esc(T('网口', 'Ports'))}</h3><span class="td-muted" id="td-ports-n"></span></div>
 					<dl class="td-kv" id="td-ports"></dl>`) ],
@@ -172,7 +200,7 @@ return view.extend({
 		poll.add(L.bind(this.tick, this), 2);
 		poll.add(L.bind(this.slow, this), 10);
 
-		if (showOC) this.loadOC();
+		this.paintApps();
 
 		requestAnimationFrame(() => requestAnimationFrame(() => this.paintRings()));
 
@@ -444,7 +472,7 @@ return view.extend({
 			this.paintStatic();
 			this.paintDisk();
 			this.pingGateway();
-			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : this.refreshPorts() ]);
+			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : Promise.all([ this.refreshPorts(), this.paintApps() ]) ]);
 		});
 	},
 
@@ -465,13 +493,34 @@ return view.extend({
 		});
 	},
 
-	/* ---------- optional OpenClash card: one procd + one uci read, no polling ---------- */
+	/* ---------- apps card: one procd query; rows rebuilt only when the set of running apps changes ---------- */
 
-	loadOC() {
-		const mark = m => this.root.querySelectorAll('#td-oc-seg button').forEach(b => b.classList.toggle('on', b.dataset.m == m));
-		let mode = null;
+	paintApps() {
+		const box = this.$('td-apps');
+		if (!box) return Promise.resolve();
+		return td.services().then(all => {
+			const live = this.s.apps.map(p => [ p, td.service(all, p.path) ]).filter(([ , s ]) => s && s.running);
+			const key = live.map(([ p ]) => p.path).join();
+			if (key == this.s.appsKey) return;
+			this.s.appsKey = key;
+			return Promise.all(live.map(([ p, s ]) => (APPS[s.name.toLowerCase()] || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
+				box.innerHTML = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
+					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running'), x.sub ].filter(Boolean).join(' · '))}</small></div>
+					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button></div>`
+					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console'))}${icon('arrow')}</a>`
+					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
+					: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running'))}</div>`;
+				box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
+			});
+		});
+	},
 
-		this.$('td-oc-seg').addEventListener('click', ev => {
+	/* OpenClash's proxy mode, switched through its own switch_rule_mode call */
+	ocSwitch(seg) {
+		let mode = seg.dataset.oc;
+		const mark = m => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m == m));
+		mark(mode);
+		seg.addEventListener('click', ev => {
 			const b = ev.target.closest('button[data-m]');
 			if (!b || b.dataset.m == mode) return;
 			const prev = mode;
@@ -479,21 +528,6 @@ return view.extend({
 			request.get(L.url('admin/services/openclash/switch_rule_mode'), { query: { rule_mode: mode } })
 				.then(r => { if (!r.ok) throw r; td.toast(T('已切换代理模式', 'Proxy mode switched')); })
 				.catch(() => { mark(mode = prev); td.toast(T('切换失败', 'Switch failed')); });
-		});
-
-		return Promise.all([ td.service('openclash'), td.uciSection('openclash', 'config') ]).then(([ svc, c ]) => {
-			const inst = ((svc.openclash || {}).instances || {});
-			const running = Object.keys(inst).some(k => inst[k].running);
-			const chip = this.$('td-oc-chip');
-			chip.className = 'td-chip' + (running ? '' : ' mute');
-			chip.innerHTML = `<span class="td-dot${running ? ' live' : ''}"></span>${esc(running ? T('运行中', 'Running') : T('未运行', 'Stopped'))}`;
-
-			const run = String(c.en_mode || c.operation_mode || '');
-			this.set('td-oc-run', run ? run.replace(/^fake-ip/, 'Fake-IP').replace(/^redir-host/, 'Redir-Host').replace(/-(tun|mix)$/, s => ' · ' + s.slice(1).toUpperCase()) : '—');
-			const cfg = String(c.config_path || '').split('/').pop().replace(/\.ya?ml$/, '');
-			this.set('td-oc-cfg', cfg || '—');
-			this.$('td-oc-cfg').title = cfg;
-			mark(mode = c.proxy_mode || 'rule');
 		});
 	},
 

@@ -8,6 +8,7 @@
 				"network.interface": [ "dump" ],
 				"system": [ "board", "info" ],
 				"service": [ "list" ],
+				"luci": [ "getMountPoints" ],
 				"uci": [ "get" ],
 				"file": [ "read", "exec" ]
 			},
@@ -31,9 +32,10 @@
 				"/sys/devices/*/hwmon*/name": [ "read" ],
 				"/sys/devices/*/hwmon*/temp1_input": [ "read" ],
 				"/sys/module/mt79*e/parameters/wed_enable": [ "read" ],
+				"/opt/open-box/data/panel-port": [ "read" ],
 				"/bin/ping": [ "exec" ]
 			},
-			"uci": [ "7dollar", "firewall", "luci", "openclash" ]
+			"uci": [ "7dollar", "firewall", "luci", "AdGuardHome", "bandix", "homeproxy", "ksmbd", "mosdns", "nikki", "openclash", "passwall", "passwall2", "samba4", "shadowsocksr", "smartdns" ]
 		},
 		"write": {
 			"ubus": {

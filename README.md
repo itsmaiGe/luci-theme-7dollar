@@ -47,7 +47,7 @@ OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和
 - **首页总览**：网络状态、实时速率、在线设备、Wi‑Fi、路由器状态、网口、存储空间，卡片可按需开关，自动排成两列不留空白
 - **按用途分组的菜单**：总览 / 设备 / Wi‑Fi / 上网 / 安全 / 应用 / 系统，支持 <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> 搜索
 - **5 套配色**：陶土、青瓷、雾蓝、暮紫、石墨，各有浅色 / 深色，可跟随系统
-- **插件卡片可选**：默认不显示任何代理信息；装了 OpenClash 可在设置中开启，只读取一次状态，不轮询
+- **「应用」卡片可选**：默认关闭；打开后首页列出正在运行的插件，任何插件都行。常见插件多一行要紧信息（OpenClash 可切换代理模式、PassWall 当前节点、文件共享剩余空间……），只读配置，不碰插件接口
 - **自适应**：手机、平板、页面缩放下都会重新排版
 - **轻量**：无外部字体和请求，CSS 18 KB（gzip），安装包 55 KB
 - **兼容原生页面**：LuCI 所有功能保持不变，原生图标统一换成主题风格
@@ -59,7 +59,7 @@ OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/home-dark.webp" alt="深色模式"><p align="center"><sub>深色模式 · OpenClash 卡片</sub></p></td>
+    <td width="50%"><img src="docs/home-dark.webp" alt="深色模式"><p align="center"><sub>深色模式</sub></p></td>
     <td width="50%"><img src="docs/mobile.webp" alt="手机"><p align="center"><sub>手机</sub></p></td>
   </tr>
   <tr>
@@ -143,7 +143,7 @@ make package/luci-theme-7dollar/compile V=s
 | --- | --- |
 | 切换配色 / 深浅色 | 系统 → 外观与首页（左下角 🌙 可快速切换深浅色） |
 | 调整首页卡片 | 系统 → 外观与首页 → 首页卡片 |
-| 显示 OpenClash 卡片 | 系统 → 外观与首页 → 插件卡片 |
+| 首页显示正在运行的插件 | 系统 → 外观与首页 → 首页卡片 → 应用 |
 | 查看在线设备 | 侧边栏「设备」 |
 | 搜索设置 | <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> / <kbd>/</kbd> |
 | 打开已装插件 | 侧边栏「应用」 |
@@ -205,7 +205,7 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 - Home dashboard with connection status, live throughput, devices, Wi‑Fi and system health
 - Menus grouped by purpose, with <kbd>⌘K</kbd> search
 - 5 palettes (Clay, Celadon, Mist, Dusk, Graphite), each in light and dark
-- Optional plugin cards. OpenClash is off by default and is read once, never polled.
+- Optional Apps card (off by default): lists whatever plugins are running. Popular ones get one line that matters (OpenClash proxy-mode switch, PassWall node, file-sharing free space…), read from their config, never from their API.
 - Native LuCI pages restyled, icons included
 - Status pages (Wi‑Fi, interfaces, overview) show the essentials; MACs, BSSIDs, packet counts and the like sit behind *Details*
 - Responsive and zoom-friendly; no external fonts or requests; 55 KB package
