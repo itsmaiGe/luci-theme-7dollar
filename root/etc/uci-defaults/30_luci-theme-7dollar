@@ -11,5 +11,9 @@ uci -q delete 7dollar.main.plugin_openclash && uci commit 7dollar   # replaced b
 uci -q set luci.themes.7Dollar=/luci-static/7dollar
 uci -q commit luci
 
+# LuCI caches the menu, and our pages depend on the active theme: when the theme is switched
+# (Language and Style), touching our menu file makes LuCI rebuild it. 24.10+ (ucitrack).
+[ -x /etc/init.d/ucitrack ] && /etc/init.d/ucitrack reload >/dev/null 2>&1
+
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache/ 2>/dev/null
 exit 0
