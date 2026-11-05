@@ -23,35 +23,35 @@
   <img src="docs/home-light.webp" alt="首页" width="100%">
 </p>
 
-## 为什么做它
+## 简介
 
-OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和英文缩写，不懂网络的人很难看懂。7Dollar 想让任何人打开后台都能看懂。
+OpenWrt 的多数主题只调整了颜色，页面上仍是大量参数、表格和英文缩写，不熟悉网络的用户不容易看懂。7Dollar 重新组织了页面的呈现方式，让普通用户也能直接找到需要的信息和功能。
 
 | | 常见主题 | 7Dollar |
 | --- | --- | --- |
-| 首页 | 一屏参数表 | 一张图看清：网通不通、多快、谁在用 |
-| 菜单 | 按技术模块分：状态 / 系统 / 服务 / 网络 | 按要做的事分：设备 / Wi‑Fi / 上网 / 安全 |
-| 设备 | MAC 地址和 IP 列表 | 设备名、类型、信号好坏、连了多久 |
-| 状态页 | 所有字段一次铺开 | 先看要紧的，MAC、BSSID 等点「详情」再看 |
+| 首页 | 参数表 | 网络状态、速率、在线设备集中显示 |
+| 菜单 | 按技术模块分类：状态 / 系统 / 服务 / 网络 | 按使用场景分类：设备 / Wi‑Fi / 上网 / 安全 |
+| 设备 | MAC 地址和 IP 列表 | 设备名称、类型、信号强度、连接时长 |
+| 状态页 | 显示全部字段 | 默认显示常用信息，MAC、BSSID 等在「详情」中查看 |
 | 用词 | 2g / 5g、DHCP 租约 | 2.4 GHz / 5 GHz、在线设备 |
-| 找功能 | 一层层翻菜单 | <kbd>⌘K</kbd> 直接搜 |
+| 查找功能 | 逐级打开菜单 | <kbd>⌘K</kbd> 搜索 |
 
-原有的功能一项不少，只是换了个更容易看懂的方式呈现。
+LuCI 原有功能全部保留，只调整了显示方式。
 
-## 关于名字
+## 名称由来
 
-开发这个主题一共花了 **7 美元** 的 AI Token 费用，所以叫 7Dollar。
+开发这个主题共花费了 **7 美元** 的 AI Token 费用，因此命名为 7Dollar。
 
-## 特性
+## 功能
 
-- **首页总览**：网络状态、实时速率、在线设备、Wi‑Fi、路由器状态、网口、存储空间，卡片可按需开关，自动排成两列不留空白
+- **首页总览**：显示网络状态、实时速率、在线设备、Wi‑Fi、路由器状态、网口和存储空间。卡片可以单独开关，并自动分为两列排列
 - **按用途分组的菜单**：总览 / 设备 / Wi‑Fi / 上网 / 安全 / 应用 / 系统，支持 <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> 搜索
-- **5 套配色**：陶土、青瓷、雾蓝、暮紫、石墨，各有浅色 / 深色，可跟随系统
-- **「应用」卡片可选**：默认关闭；打开后首页列出正在运行的插件，任何插件都行。常见插件多一行要紧信息（OpenClash 可切换代理模式、PassWall 当前节点、文件共享剩余空间……），只读配置，不碰插件接口
-- **自适应**：手机、平板、页面缩放下都会重新排版
-- **轻量**：无外部字体和请求，CSS 16 KB（gzip），安装包 48 KB
-- **兼容原生页面**：LuCI 所有功能保持不变，原生图标统一换成主题风格
-- **信息分层**：Wi‑Fi、接口、状态页默认只显示常用信息，MAC、BSSID、数据包数等点「详情」展开
+- **5 套配色**：陶土、青瓷、雾蓝、暮紫、石墨，均有浅色和深色，可跟随系统设置
+- **应用卡片（可选）**：默认关闭。开启后，首页列出正在运行的插件，适用于任意插件。常见插件会额外显示一项关键信息，例如 OpenClash 代理模式（可直接切换）、PassWall 当前节点、文件共享剩余空间。信息只从插件配置中读取，不调用插件接口
+- **自适应布局**：在手机、平板和页面缩放时自动调整排版
+- **轻量**：不加载外部字体，不发起外部请求；CSS 16 KB（gzip），安装包 48 KB
+- **兼容原生页面**：LuCI 功能保持不变，原生图标统一为主题风格
+- **信息分层**：Wi‑Fi、接口和状态页默认只显示常用信息，MAC、BSSID、数据包数等内容点击「详情」查看
 
 ## 截图
 
@@ -74,33 +74,33 @@ OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和
 
 ## 安装
 
-先确认路由器系统是 **OpenWrt 23.05 或更新版本**（后台「状态 → 概览」里能看到版本号）。
+安装前请确认路由器系统为 **OpenWrt 23.05 或更新版本**。版本号可在后台「状态 → 概览」中查看。
 
-### 方法一：网页上传（推荐，不用命令行）
+### 方法一：网页上传（推荐，无需命令行）
 
-适用于 23.05 / 24.10。25.x 请用方法二。
+适用于 23.05 / 24.10。25.x 请使用方法二。
 
 1. 下载安装包：[luci-theme-7dollar_1.0.12-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/releases/latest/download/luci-theme-7dollar_1.0.12-r1_all.ipk)（历史版本见 [Releases](https://github.com/itsmaiGe/luci-theme-7dollar/releases)）
-2. 浏览器打开路由器后台（通常是 `192.168.1.1`），输入密码登录
-3. 点 **系统 → 软件包 → 上传软件包…**，选择刚下载的文件，点 **上传**，再点 **安装**
+2. 在浏览器中打开路由器后台（通常为 `192.168.1.1`），输入密码登录
+3. 打开 **系统 → 软件包 → 上传软件包…**，选择下载的文件，点击 **上传**，再点击 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
 
-> 刷新后没变化：打开 **系统 → 系统 → 语言和界面**，把 **主题** 改成 **7Dollar**，点 **保存并应用**。
+> 如果刷新后界面没有变化：打开 **系统 → 系统 → 语言和界面**，将 **主题** 设为 **7Dollar**，点击 **保存并应用**。
 
 ### 方法二：一行命令
 
-适用于所有支持的版本，会自动选择 ipk（23.05 / 24.10）或 apk（25.x）安装包。
+适用于所有支持的版本。脚本会根据系统自动选择 ipk（23.05 / 24.10）或 apk（25.x）安装包。
 
-1. 打开终端：Mac 搜索「终端」，Windows 搜索「PowerShell」
-2. 登录路由器（把 IP 换成你的路由器地址）：
+1. 打开终端：Mac 上搜索「终端」，Windows 上搜索「PowerShell」
+2. 登录路由器（将 IP 替换为你的路由器地址）：
 
    ```sh
    ssh root@192.168.1.1
    ```
 
-   首次连接提示 `yes/no` 时输入 `yes` 回车；然后输入路由器密码回车（输入时不显示字符，属于正常现象）。
+   首次连接出现 `yes/no` 提示时，输入 `yes` 并回车；然后输入路由器密码并回车。输入密码时屏幕不显示字符，这是正常现象。
 
-3. 粘贴下面这行并回车，看到「完成」后刷新浏览器：
+3. 粘贴下面的命令并回车，出现「完成」后刷新浏览器：
 
    ```sh
    wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
@@ -111,9 +111,9 @@ OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和
 
 <br>
 
-国内访问 GitHub 不稳定时，建议用方法一：先在电脑上下载安装包再上传。
+如果访问 GitHub 不稳定，建议使用方法一：先在电脑上下载安装包，再上传到路由器。
 
-或者使用 GitHub 加速代理（替换 `<代理地址>`）：
+也可以使用 GitHub 加速代理（将 `<代理地址>` 替换为实际地址）：
 
 ```sh
 wget -qO- <代理地址>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | PROXY=<代理地址>/ sh
@@ -141,19 +141,19 @@ make package/luci-theme-7dollar/compile V=s
 
 | 操作 | 位置 |
 | --- | --- |
-| 切换配色 / 深浅色 | 系统 → 外观与首页（左下角 🌙 可快速切换深浅色） |
+| 切换配色 / 深浅色 | 系统 → 外观与首页（也可点击左下角 🌙 切换深浅色） |
 | 调整首页卡片 | 系统 → 外观与首页 → 首页卡片 |
 | 首页显示正在运行的插件 | 系统 → 外观与首页 → 首页卡片 → 应用 |
 | 查看在线设备 | 侧边栏「设备」 |
 | 搜索设置 | <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> / <kbd>/</kbd> |
 | 打开已装插件 | 侧边栏「应用」 |
 
-设置保存在 `/etc/config/7dollar`，仅影响界面显示，不会修改网络配置。
+主题设置保存在 `/etc/config/7dollar`，只影响界面显示，不会修改网络配置。
 
 ## 卸载
 
-- **换回其他主题**：系统 → 系统 → 语言和界面 → 主题，选择 Bootstrap 或其他主题，保存并应用
-- **彻底卸载**：系统 → 软件包 → 已安装，搜索 `7dollar`，点 **移除**（会自动切回 Bootstrap）
+- **切换为其他主题**：打开 系统 → 系统 → 语言和界面 → 主题，选择 Bootstrap 或其他主题，保存并应用
+- **完全卸载**：打开 系统 → 软件包 → 已安装，搜索 `7dollar`，点击 **移除**。卸载后会自动切换为 Bootstrap
 - **命令卸载**：
 
   ```sh
@@ -165,7 +165,7 @@ make package/luci-theme-7dollar/compile V=s
 
 <br>
 
-SSH 登录路由器后执行，立即切回默认主题：
+通过 SSH 登录路由器后执行以下命令，切换为默认主题：
 
 ```sh
 uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci
@@ -184,7 +184,7 @@ uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci
 ## 目录结构
 
 ```
-htdocs/luci-static/7dollar/      样式、图标、Logo
+htdocs/luci-static/7dollar/      样式、图标
 htdocs/luci-static/resources/    导航与页面脚本
 ucode/                           页面框架、登录页
 root/                            默认配置、菜单、权限
@@ -200,7 +200,7 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 
 ## English
 
-**7Dollar** is a LuCI theme for people who are not network engineers: it says what's happening (online or not, how fast, who's connected) instead of dumping every field, groups menus by task (Devices, Wi‑Fi, Internet, Security), and keeps the technical details one *Details* click away. Nothing from LuCI is removed. It is a clean, card-based theme for OpenWrt 23.05+ (ucode LuCI), including apk-based 25.x. The name comes from its cost: **$7** in AI tokens.
+**7Dollar** is a LuCI theme for people who are not network engineers: it shows what matters (online or not, how fast, who's connected) instead of listing every field, groups menus by task (Devices, Wi‑Fi, Internet, Security), and keeps the technical details one *Details* click away. Nothing from LuCI is removed. It is a clean, card-based theme for OpenWrt 23.05+ (ucode LuCI), including apk-based 25.x. The name comes from its cost: **$7** in AI tokens.
 
 - Home dashboard with connection status, live throughput, devices, Wi‑Fi and system health
 - Menus grouped by purpose, with <kbd>⌘K</kbd> search
