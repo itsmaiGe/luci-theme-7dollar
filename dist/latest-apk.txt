@@ -1,1 +1,1 @@
-luci-theme-7dollar-1.0.12-r1.apk
+luci-theme-7dollar-1.0.13-r1.apk
