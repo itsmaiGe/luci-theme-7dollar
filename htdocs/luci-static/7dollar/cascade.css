@@ -105,7 +105,7 @@ kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-ra
 .td-icon-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:var(--ink-2)!important;background:none;cursor:pointer;text-decoration:none!important}
 .td-icon-btn:hover{background:var(--hover);color:var(--ink)!important}
 .td-main{padding:34px 40px 60px 24px;min-width:0;container:main/inline-size;position:relative}
-#maincontent{max-width:1200px;min-width:0}
+#maincontent{max-width:1440px;min-width:0}
 @keyframes td-fade{from{opacity:0}to{opacity:1}}
 @keyframes td-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 #view{animation:td-rise var(--slow) var(--ease)}
@@ -302,6 +302,8 @@ fieldset{min-width:0}
 .cbi-tabmenu.map{margin:0 0 18px}
 .cbi-tabmenu.map>li>a{font:500 16px var(--serif)}
 .cbi-section>.cbi-tabmenu:first-child{margin-top:-8px}
+/* a mouse can't scroll sideways: there, tab rows and pills wrap instead of hiding what doesn't fit */
+@media (hover:hover) and (pointer:fine){.cbi-tabmenu,.tabs,.td-pills{flex-wrap:wrap;overflow-x:visible}}
 .cbi-tabcontainer{min-width:0}
 [data-tab-title]:not([data-tab-active=true]){display:none}
 [data-tab-active=true]{animation:td-fade var(--base) var(--ease)}
