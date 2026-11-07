@@ -453,8 +453,10 @@ function clients(wifi, uplink) {
 		/* neighbours on the uplink side (a main router's WAN port, a repeater's Wi-Fi link) are not
 		 * our devices; a side router's uplink is the LAN itself, so there only the gateway is skipped.
 		 * What a side router sees on its LAN port may well be a phone on the main router's Wi-Fi,
-		 * so those count as "lan" rather than "wired". */
+		 * so those count as "lan" rather than "wired". The same goes for a box with no Wi-Fi of its
+		 * own (x86, radios off): its Wi-Fi devices arrive through an access point on a LAN port. */
 		const side = up.mode == 'side', skip = side ? [] : [ up.device, up.port ];
+		const lan = side || !(wi.aps || []).some(ap => ap.up);
 		const byMac = {};
 		const get = mac => {
 			mac = String(mac).toUpperCase();
@@ -500,7 +502,7 @@ function clients(wifi, uplink) {
 				if (macs && !macs[f[3].toUpperCase()]) return;
 				const c = get(f[3]);
 				c.online = true;
-				c.conn = side ? 'lan' : 'wired';
+				c.conn = lan ? 'lan' : 'wired';
 				c.ip = c.ip || f[0];
 			});
 

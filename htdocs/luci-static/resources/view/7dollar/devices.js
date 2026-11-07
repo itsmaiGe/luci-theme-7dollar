@@ -78,6 +78,7 @@ return view.extend({
 			const b = $('td-dstats').querySelector(`[data-v="${k}"]`), sel = list.filter(match);
 			b.firstChild.textContent = lan && alt || n;
 			b.lastChild.textContent = sel.length;
+			b.hidden = lan && k == 'wifi' && !sel.length;   // no Wi-Fi of our own to count
 			b.setAttribute('aria-pressed', k == this.view);
 			if (k == this.view) rows = sel;
 		});
