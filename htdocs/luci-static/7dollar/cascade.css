@@ -136,8 +136,10 @@ kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-ra
 .td-pills a{padding:7px 14px;border-radius:99px;color:var(--ink-2);text-decoration:none;white-space:nowrap;font-size:13.5px;transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
 .td-pills a:hover{background:var(--hover);color:var(--ink);text-decoration:none}
 .td-pills a.on{background:var(--ink);color:var(--canvas)}
-.td-pills .back{display:inline-flex;align-items:center;gap:4px;color:var(--ink-3)}
-.td-pills .back svg{width:15px;height:15px;transform:rotate(180deg)}
+.td-pills :is(.back,.fold){display:inline-flex;align-items:center;gap:4px;color:var(--ink-3)}
+.td-pills :is(.back,.fold) svg{width:15px;height:15px;transform:rotate(180deg)}
+.td-pills .fold svg{transform:rotate(90deg)}
+.td-pills .td-in{animation:td-fade var(--base) var(--ease) both}
 
 /* rail: narrow windows or zoomed in */
 @media (max-width:1100px){

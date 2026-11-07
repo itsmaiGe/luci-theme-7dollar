@@ -499,19 +499,24 @@ return view.extend({
 		});
 	},
 
-	/* ---------- apps card: one procd query plus a config read per running app, every 30 s; the DOM is touched only when something changed ---------- */
+	/* ---------- apps card: one procd query plus a config read per shown app, every 30 s; the DOM is touched only when something changed.
+	 * Like the devices card it shows a few rows (apps with something to say first) and counts the rest. ---------- */
 
 	paintApps() {
 		const box = this.$('td-apps');
 		if (!box) return Promise.resolve();
 		return td.services().then(all => {
-			const live = this.s.apps.map(p => [ p, td.service(all, p.path) ]).filter(([ , s ]) => s && s.running);
-			return Promise.all(live.map(([ p, s ]) => (APPS[s.name.toLowerCase()] || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
+			const fn = s => APPS[s.name.toLowerCase()];
+			const live = this.s.apps.map(p => [ p, td.service(all, p.path) ]).filter(([ , s ]) => s && s.running)
+				.sort(([ , a ], [ , b ]) => !fn(a) - !fn(b));
+			const top = live.slice(0, live.length > 5 ? 4 : 5), more = live.length - top.length;
+			return Promise.all(top.map(([ p, s ]) => (fn(s) || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
 				const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
 					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running'), x.sub ].filter(Boolean).join(' · '))}</small></div>
 					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button></div>`
 					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console'))}${icon('arrow')}</a>`
 					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
+					+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`))}</a>` : '')
 					: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running'))}</div>`;
 				if (box._html === html) return;
 				this.put(box, html);

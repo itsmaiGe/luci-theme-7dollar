@@ -106,7 +106,18 @@ return baseclass.extend({
 		items = g.list;
 		if (items.length < 2) return;
 
-		box.innerHTML = items.map(p => `<a href="${L.url(p.path)}" class="${p === current ? 'on' : ''}">${esc(p.title)}</a>`).join('');
+		/* everyday pages first; the rest wait behind "More" unless one of them is open */
+		const pill = (p, cls) => `<a href="${L.url(p.path)}" class="${p === current ? 'on' : cls || ''}">${esc(p.title)}</a>`;
+		const rest = items.filter(p => g.pages.indexOf(p.path) < 0);
+		const fold = rest.length > 1 && rest.indexOf(current) < 0;
+		box.innerHTML = (fold ? items.filter(p => rest.indexOf(p) < 0) : items).map(p => pill(p)).join('')
+			+ (fold ? `<a href="#" role="button" class="fold">${esc(T('更多', 'More'))}${icon('chev')}</a>` : '');
+		if (fold)
+			box.lastChild.addEventListener('click', ev => {
+				ev.preventDefault();
+				ev.currentTarget.outerHTML = rest.map(p => pill(p, 'td-in')).join('');
+				edge();
+			});
 		const on = box.querySelector('.on');
 		if (on && on.scrollIntoView) box.scrollLeft = Math.max(0, on.offsetLeft - 40);
 

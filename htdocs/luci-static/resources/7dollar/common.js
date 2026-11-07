@@ -49,23 +49,27 @@ const PALETTES = [
 	[ 'graphite', T('石墨', 'Graphite') ]
 ];
 
-/* Menu regrouping: native LuCI pages -> seven plain-language sections. */
+/* Menu regrouping: native LuCI pages -> seven plain-language sections. `pages` are the everyday
+ * ones, shown as pills; `more` and anything matched by `prefix` sit behind the group's "More" pill.
+ * System lists its native pages one by one: plugins that put themselves under System or Status
+ * (other themes' settings, file transfer, disk tools ...) are apps, not router settings. */
 const GROUPS = [
 	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home', 'admin/dashboard' ] },
 	{ id: 'devices', icon: 'devices', label: T('设备', 'Devices'), pages: [ 'admin/clients' ] },
 	{ id: 'wifi', icon: 'wifi', label: 'Wi‑Fi', pages: [ 'admin/network/wireless', 'admin/status/channel_analysis' ] },
 	{ id: 'internet', icon: 'globe', label: T('上网', 'Internet'),
-	  pages: [ 'admin/network/network', 'admin/network/dhcp', 'admin/network/diagnostics', 'admin/network/routes', 'admin/status/routes', 'admin/network/switch' ],
+	  pages: [ 'admin/network/network', 'admin/network/dhcp', 'admin/network/diagnostics' ],
+	  more: [ 'admin/network/routes', 'admin/status/routes', 'admin/network/switch' ],
 	  prefix: [ 'admin/network' ] },
 	{ id: 'security', icon: 'shield', label: T('安全', 'Security'), mob: false,
 	  pages: [ 'admin/network/firewall', 'admin/status/nftables', 'admin/status/iptables', 'admin/system/admin' ] },
 	{ id: 'apps', icon: 'grid', label: T('应用', 'Apps'), mob: false, pages: [ 'admin/apps' ],
 	  prefix: [ 'admin/services', 'admin/vpn', 'admin/nas', 'admin/docker', 'admin/statistics' ] },
 	{ id: 'system', icon: 'gear', label: T('系统', 'System'), short: T('更多', 'More'),
-	  pages: [ 'admin/system/system', 'admin/system/appearance', 'admin/status/overview', 'admin/status/realtime', 'admin/status/logs',
-	           'admin/system/package-manager', 'admin/system/opkg', 'admin/system/flash', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes',
-	           'admin/system/mounts', 'admin/system/leds', 'admin/system/reboot' ],
-	  prefix: [ 'admin/system', 'admin/status' ] }
+	  pages: [ 'admin/system/system', 'admin/system/appearance', 'admin/status/overview', 'admin/status/logs',
+	           'admin/system/package-manager', 'admin/system/opkg', 'admin/system/flash', 'admin/system/reboot' ],
+	  more: [ 'admin/status/realtime', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes', 'admin/system/mounts',
+	          'admin/system/leds', 'admin/status/syslog', 'admin/status/dmesg', 'admin/status/dashboard' ] }
 ];
 
 const LABELS = {
@@ -187,7 +191,7 @@ function flatten(tree) {
 
 function groupOf(path) {
 	for (const g of GROUPS)
-		if (g.pages.indexOf(path) > -1)
+		if (g.pages.concat(g.more || []).indexOf(path) > -1)
 			return g.id;
 
 	for (const g of GROUPS)
@@ -200,9 +204,9 @@ function groupOf(path) {
 
 function grouped(pages) {
 	return GROUPS.map(g => {
-		const list = pages.filter(p => p.group == g.id);
+		const order = g.pages.concat(g.more || []), list = pages.filter(p => p.group == g.id);
 		list.sort((a, b) => {
-			const ia = g.pages.indexOf(a.path), ib = g.pages.indexOf(b.path);
+			const ia = order.indexOf(a.path), ib = order.indexOf(b.path);
 			return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
 		});
 		return Object.assign({}, g, { list: list });
