@@ -12,6 +12,7 @@
 const ZH = /^zh/i.test(document.documentElement.getAttribute('lang') || '');
 const T = (zh, en) => ZH ? zh : en;
 const SPRITE = '/luci-static/7dollar/icons.svg';
+const ACTIVE = /\/7dollar$/.test(L.env.media || '');
 
 const callUciGet = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 const callUciGetType = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'type' ], expect: { values: {} } });
@@ -54,7 +55,7 @@ const PALETTES = [
  * System lists its native pages one by one: plugins that put themselves under System or Status
  * (other themes' settings, file transfer, disk tools ...) are apps, not router settings. */
 const GROUPS = [
-	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home', 'admin/dashboard' ] },
+	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home' ] },
 	{ id: 'devices', icon: 'devices', label: T('设备', 'Devices'), pages: [ 'admin/clients' ] },
 	{ id: 'wifi', icon: 'wifi', label: 'Wi‑Fi', pages: [ 'admin/network/wireless', 'admin/status/channel_analysis' ] },
 	{ id: 'internet', icon: 'globe', label: T('上网', 'Internet'),
@@ -68,13 +69,13 @@ const GROUPS = [
 	{ id: 'system', icon: 'gear', label: T('系统', 'System'), short: T('更多', 'More'),
 	  pages: [ 'admin/system/system', 'admin/system/appearance', 'admin/status/overview', 'admin/status/logs',
 	           'admin/system/package-manager', 'admin/system/opkg', 'admin/system/flash', 'admin/system/reboot' ],
-	  more: [ 'admin/status/realtime', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes', 'admin/system/mounts',
+	  more: [ 'admin/dashboard', 'admin/status/realtime', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes', 'admin/system/mounts',
 	          'admin/system/leds', 'admin/status/syslog', 'admin/status/dmesg', 'admin/status/dashboard' ] }
 ];
 
 const LABELS = {
 	'admin/home': T('总览', 'Overview'),
-	'admin/dashboard': T('官方仪表盘', 'Dashboard'),
+	'admin/dashboard': T('仪表盘', 'Dashboard'),
 	'admin/clients': T('设备', 'Devices'),
 	'admin/apps': T('全部应用', 'All apps'),
 	'admin/network/wireless': T('无线网络', 'Wireless'),
@@ -156,6 +157,25 @@ function menuHas(tree, path) {
 /* The software page: package-manager since 24.10, opkg on 23.05; null when neither app is installed. */
 function software(tree) {
 	return [ 'system/package-manager', 'system/opkg' ].find(p => menuHas(tree, p)) || null;
+}
+
+let menuPromise;
+
+/* A menu cached before switching themes can omit our home page. Refresh it once and share the
+ * result between navigation and views; never invent entries that the server did not authorize. */
+function loadMenu() {
+	if (!menuPromise)
+		menuPromise = ui.menu.load().then(tree => {
+			const home = tree && tree.children && tree.children.admin && tree.children.admin.children && tree.children.admin.children.home;
+			if (!ACTIVE || (home && home.satisfied && home.action && home.action.path == '7dollar/home'))
+				return tree;
+
+			ui.menu.flushCache();
+			ui.menu.menu = null;
+			return ui.menu.load();
+		});
+
+	return menuPromise;
 }
 
 function flatten(tree) {
@@ -649,10 +669,10 @@ const uciSection = (config, section) => L.resolveDefault(callUciGet(config, sect
 
 return baseclass.extend({
 	ZH: ZH, T: T,
-	active: /\/7dollar$/.test(L.env.media || ''),
+	active: ACTIVE,
 	PALETTES: PALETTES, OPT_IN: OPT_IN, words: words, cardOn: cardOn,
 	esc: esc, icon: icon, html: html,
-	flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, appIcon: appIcon, service: service,
+	loadMenu: loadMenu, flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, appIcon: appIcon, service: service,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, connName: connName,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, ports: ports, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,

@@ -16,7 +16,7 @@ const mqPhone = window.matchMedia('(max-width:760px)');
 
 return baseclass.extend({
 	__init__() {
-		ui.menu.load().then(L.bind(this.render, this));
+		td.loadMenu().then(L.bind(this.render, this));
 		this.bindKeys();
 		this.bindMode();
 		this.bindVisibility();
