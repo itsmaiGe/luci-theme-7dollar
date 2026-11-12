@@ -75,10 +75,13 @@ const GROUPS = [
 	  prefix: [ 'admin/system', 'admin/status' ], own: true }
 ];
 
-/* A page LuCI itself ships: it opens one of LuCI's status/system views, or points into them. */
+/* A page LuCI itself ships: it opens one of LuCI's status/system views, or points into them.
+ * (The patterns sit in constants: the buildroot's jsmin misreads a regex that follows `return`.) */
+const OWN_VIEW = /^(status|system|admin_status)\//, OWN_ALIAS = /^admin\/(status|system)\//;
+
 function own(node) {
-	const a = (node && node.action) || {};
-	return /^(status|system|admin_status)\//.test(a.path || '') || (a.type == 'alias' && /^admin\/(status|system)\//.test(a.path || ''));
+	const a = (node && node.action) || {}, path = a.path || '';
+	return OWN_VIEW.test(path) || (a.type == 'alias' && OWN_ALIAS.test(path));
 }
 
 const LABELS = {
