@@ -52,15 +52,16 @@ const PALETTES = [
 
 /* Menu regrouping: native LuCI pages -> seven plain-language sections. `pages` are the everyday
  * ones, shown as pills; `more` and anything matched by `prefix` sit behind the group's "More" pill.
- * System lists its native pages one by one: plugins that put themselves under System or Status
- * (other themes' settings, file transfer, disk tools ...) are apps, not router settings. */
+ * Plugins also put themselves under System or Status (other themes' settings, file transfer, disk
+ * tools ...); those are apps. So System's prefixes only take LuCI's own pages, told apart by the
+ * view they open (`own`), which also covers native pages added in newer LuCI versions. */
 const GROUPS = [
 	{ id: 'home', icon: 'home', label: T('总览', 'Overview'), pages: [ 'admin/home' ] },
 	{ id: 'devices', icon: 'devices', label: T('设备', 'Devices'), pages: [ 'admin/clients' ] },
 	{ id: 'wifi', icon: 'wifi', label: 'Wi‑Fi', pages: [ 'admin/network/wireless', 'admin/status/channel_analysis' ] },
 	{ id: 'internet', icon: 'globe', label: T('上网', 'Internet'),
-	  pages: [ 'admin/network/network', 'admin/network/dhcp', 'admin/network/diagnostics' ],
-	  more: [ 'admin/network/routes', 'admin/status/routes', 'admin/network/switch' ],
+	  pages: [ 'admin/network/network', 'admin/network/dhcp', 'admin/network/dns', 'admin/network/diagnostics' ],
+	  more: [ 'admin/network/routes', 'admin/status/routes', 'admin/status/routesj', 'admin/network/switch' ],
 	  prefix: [ 'admin/network' ] },
 	{ id: 'security', icon: 'shield', label: T('安全', 'Security'), mob: false,
 	  pages: [ 'admin/network/firewall', 'admin/status/nftables', 'admin/status/iptables', 'admin/system/admin' ] },
@@ -70,8 +71,15 @@ const GROUPS = [
 	  pages: [ 'admin/system/system', 'admin/system/appearance', 'admin/status/overview', 'admin/status/logs',
 	           'admin/system/package-manager', 'admin/system/opkg', 'admin/system/flash', 'admin/system/reboot' ],
 	  more: [ 'admin/dashboard', 'admin/status/realtime', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes', 'admin/system/mounts',
-	          'admin/system/leds', 'admin/status/syslog', 'admin/status/dmesg', 'admin/status/dashboard' ] }
+	          'admin/system/leds', 'admin/status/syslog', 'admin/status/dmesg', 'admin/status/dashboard' ],
+	  prefix: [ 'admin/system', 'admin/status' ], own: true }
 ];
+
+/* A page LuCI itself ships: it opens one of LuCI's status/system views, or points into them. */
+function own(node) {
+	const a = (node && node.action) || {};
+	return /^(status|system|admin_status)\//.test(a.path || '') || (a.type == 'alias' && /^admin\/(status|system)\//.test(a.path || ''));
+}
 
 const LABELS = {
 	'admin/home': T('总览', 'Overview'),
@@ -81,10 +89,10 @@ const LABELS = {
 	'admin/network/wireless': T('无线网络', 'Wireless'),
 	'admin/status/channel_analysis': T('信道分析', 'Channel analysis'),
 	'admin/network/network': T('网络接口', 'Interfaces'),
-	'admin/network/dhcp': T('DHCP 与 DNS', 'DHCP & DNS'),
 	'admin/network/diagnostics': T('网络诊断', 'Diagnostics'),
 	'admin/network/routes': T('静态路由', 'Static routes'),
 	'admin/status/routes': T('路由表', 'Routing table'),
+	'admin/status/routesj': T('路由表', 'Routing table'),
 	'admin/network/switch': T('交换机', 'Switch'),
 	'admin/network/firewall': T('防火墙', 'Firewall'),
 	'admin/status/nftables': T('防火墙规则', 'Firewall status'),
@@ -203,20 +211,20 @@ function flatten(tree) {
 
 	out.forEach(p => {
 		p.title = title(p.path, p.node);
-		p.group = groupOf(p.path);
+		p.group = groupOf(p.path, p.node);
 	});
 
 	return out;
 }
 
-function groupOf(path) {
+function groupOf(path, node) {
 	for (const g of GROUPS)
 		if (g.pages.concat(g.more || []).indexOf(path) > -1)
 			return g.id;
 
 	for (const g of GROUPS)
 		for (const pre of (g.prefix || []))
-			if (path == pre || path.indexOf(pre + '/') == 0)
+			if ((path == pre || path.indexOf(pre + '/') == 0) && (!g.own || own(node)))
 				return g.id;
 
 	return 'apps';
