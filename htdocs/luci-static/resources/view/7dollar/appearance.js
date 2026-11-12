@@ -20,7 +20,7 @@ const CARDS = [
 
 return view.extend({
 	load() {
-		return Promise.all([ td.loadSettings(), ui.menu.load(), td.uciSection('luci', 'main') ]);
+		return Promise.all([ td.loadSettings(), td.loadMenu(), td.uciSection('luci', 'main') ]);
 	},
 
 	render([ conf, tree, luci ]) {

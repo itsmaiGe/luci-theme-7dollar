@@ -66,7 +66,7 @@ return view.extend({
 			td.board(),
 			td.sysinfo(),
 			td.wan(),
-			ui.menu.load().then(menu => Promise.all([ menu, td.menuHas(menu, 'network/wireless') ? td.wifiInfo() : null ])),
+			td.loadMenu().then(menu => Promise.all([ menu, td.menuHas(menu, 'network/wireless') ? td.wifiInfo() : null ])),
 			td.uciType('firewall', 'defaults'),
 			Promise.all([ 'mt7915e', 'mt7996e' ].map(m => td.readFile(`/sys/module/${m}/parameters/wed_enable`))).then(l => l.find(Boolean)),   // Wi-Fi 6 / Wi-Fi 7 MediaTek
 			td.readFile('/proc/sys/net/ipv4/tcp_congestion_control'),

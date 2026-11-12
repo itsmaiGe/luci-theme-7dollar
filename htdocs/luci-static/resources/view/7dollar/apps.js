@@ -13,7 +13,7 @@ return view.extend({
 			location.replace(L.url('admin/services'));
 			return new Promise(() => {});
 		}
-		return ui.menu.load();
+		return td.loadMenu();
 	},
 
 	render(tree) {
