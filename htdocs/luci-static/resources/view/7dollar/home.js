@@ -102,8 +102,8 @@ return view.extend({
 		 * side router / AP, which hangs off the main router next to the other devices. */
 		const UP = { wan: [ 'modem', T('上级网络', 'Upstream') ], sta: [ 'wifi', T('上级 Wi‑Fi', 'Upstream Wi‑Fi') ], side: [ 'router', T('主路由', 'Main router') ] }[mode];
 		const link = (attr, tid) => `<div class="td-link"${attr}><span class="t" id="${tid}">&nbsp;</span><div class="ln"><i></i><i></i></div></div>`;
-		const nUp = `<div class="td-node" id="td-up-node"><div class="ic">${icon(UP[0])}</div><b>${esc(UP[1])}</b><small id="td-proto">—</small></div>`;
-		const nMe = `<div class="td-node me"><div class="ic">${icon('router')}</div><b>${esc(board.hostname || 'OpenWrt')}</b><small>${esc(mode == 'side' ? T('旁路由', 'Side router') : T('这台路由器', 'This router'))}</small></div>`;
+		const nUp = `<div class="td-node" id="td-up-node"><div class="ic" id="td-up-icon">${icon(UP[0])}</div><b id="td-up-title">${esc(UP[1])}</b><small id="td-proto">—</small></div>`;
+		const nMe = `<div class="td-node me"><div class="ic">${icon('router')}</div><b>${esc(board.hostname || 'OpenWrt')}</b><small id="td-router-role">${esc(mode == 'side' ? T('旁路由', 'Side router') : T('这台路由器', 'This router'))}</small></div>`;
 		const nDev = `<div class="td-node"><div class="ic">${icon('devices')}</div><b id="td-ndev">—</b><small id="td-ndev-s">&nbsp;</small></div>`;
 		const lUp = link(' id="td-link-up"', 'td-lat'), lLan = link('', 'td-lan-t');
 		const topo = mode == 'side' ? nMe + lUp + nUp + lLan + nDev : nUp + lUp + nMe + lLan + nDev;
@@ -243,6 +243,15 @@ return view.extend({
 		const w = this.s.wan;
 		const bands = [...new Set((this.s.wifi.aps || []).filter(a => a.up && a.stations.length).map(a => td.bandName(a.band)))];
 
+		/* PPPoE is terminated by this router, not by the upstream network. Keep the labels in sync
+		 * when the WAN reconnects or fails over to a different protocol. */
+		const dial = this.s.mode == 'wan' && w && w.proto == 'pppoe';
+		if (this.s.mode == 'wan') {
+			this.put(this.$('td-up-icon'), icon(dial ? 'globe' : 'modem'));
+			this.set('td-up-title', dial ? T('互联网', 'Internet') : T('上级网络', 'Upstream'));
+		}
+		this.set('td-router-role', this.s.mode == 'side' ? T('旁路由', 'Side router') : dial ? T('本机拨号', 'PPPoE dial-up') : T('这台路由器', 'This router'));
+
 		this.set('td-lan-t', this.s.mode == 'side' ? T('局域网', 'LAN') : bands.length ? 'Wi‑Fi ' + bands.join(' / ') : T('有线', 'Wired'));
 
 		const ok = !!(w && w.up), chip = this.$('td-conn-chip');
@@ -263,7 +272,7 @@ return view.extend({
 			return;
 		}
 
-		this.set('td-proto', this.s.mode == 'side' ? w.gw || '—' : this.s.mode == 'sta' ? T('无线中继', 'Wi‑Fi uplink') : PROTO[w.proto] || w.proto || '—');
+		this.set('td-proto', this.s.mode == 'side' ? w.gw || '—' : this.s.mode == 'sta' ? T('无线中继', 'Wi‑Fi uplink') : dial ? T('运营商网络', 'ISP network') : PROTO[w.proto] || w.proto || '—');
 		this.set('td-wanip', w.ip || w.ip6 || '—');
 		this.set('td-dns', td.dnsName(w.dns, w.gw, this.s.mode == 'side' ? T('主路由', 'Main router') : null));
 		this.set('td-wanup', w.uptime ? td.duration(w.uptime) : '—');
