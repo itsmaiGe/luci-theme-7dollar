@@ -16,6 +16,11 @@ LUCI_DESCRIPTION:=A calm, card based LuCI theme with five palettes, light/dark m
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
 
+# Ship CSS and JS as written. The buildroot's minifiers predate what the theme uses: csstidy
+# drops @container (the home page then falls into one column), jsmin misreads some regex literals.
+LUCI_MINIFY_CSS:=0
+LUCI_MINIFY_JS:=0
+
 PKG_LICENSE:=Apache-2.0
 PKG_MAINTAINER:=itsmaiGe <https://github.com/itsmaiGe>
 
