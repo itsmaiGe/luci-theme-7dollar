@@ -81,6 +81,7 @@ return view.extend({
 		const software = td.software(menu);
 
 		this.s = {
+			inBytes: conf.rate_unit == 'byte',
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
 			clients: [], ping: null, apps: apps, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode
@@ -402,7 +403,7 @@ return view.extend({
 			const rx = Math.max(0, (d.rx - this.s.last.rx) / dt), tx = Math.max(0, (d.tx - this.s.last.tx) / dt);
 			this.s.down.push(rx); this.s.down.shift();
 			this.s.up.push(tx); this.s.up.shift();
-			const [ dv, du ] = td.rate(rx), [ uv, uu ] = td.rate(tx);
+			const [ dv, du ] = td.rate(rx, this.s.inBytes), [ uv, uu ] = td.rate(tx, this.s.inBytes);
 			this.set('td-down', dv); this.set('td-down-u', du);
 			this.set('td-up', uv); this.set('td-up-u', uu);
 			this.drawChart();
