@@ -173,7 +173,7 @@ return view.extend({
 
 			<div class="td-grid"><div class="td-pair">
 				<section class="td-card k-conn" data-card="conn">
-					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
+					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip" role="status" aria-live="polite" aria-atomic="true"></span></div>
 					<div class="td-topo">${topo}</div>
 					<dl class="td-facts">
 						<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd></div>
@@ -269,6 +269,9 @@ return view.extend({
 
 		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
+			[ 'td-wanip', 'td-dns', 'td-wanup', 'td-ping' ].forEach(id => this.set(id, '—'));
+			this.set('td-lat', T('未连接', 'Offline'));
+			this.s.miss = 0;
 			return;
 		}
 
@@ -493,13 +496,16 @@ return view.extend({
 
 	pingGateway() {
 		const w = this.s.wan;
-		if (!w || !w.gw || !/^[0-9.]+$/.test(w.gw)) {
+		if (!w || !w.up || !w.gw || !/^[0-9.]+$/.test(w.gw)) {
+			this.set('td-ping', '—');
 			this.set('td-lat', w && w.up ? T('已连接', 'Connected') : T('未连接', 'Offline'));
+			this.s.miss = 0;
 			return Promise.resolve();
 		}
 		/* a gateway that never answers ping (many ISP modems) is retried every few minutes, not every 30 s */
 		if (this.s.miss >= 3 && this.ticks % 18) return Promise.resolve();
 		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
+			if (!this.s.wan || !this.s.wan.up || this.s.wan.gw != w.gw) return;
 			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
 			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
 			this.s.miss = v ? 0 : (this.s.miss || 0) + 1;
@@ -522,7 +528,7 @@ return view.extend({
 			return Promise.all(top.map(([ p, s ]) => (fn(s) || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
 				const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
 					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running'), x.sub ].filter(Boolean).join(' · '))}</small></div>
-					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button></div>`
+					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}" role="group" aria-label="${esc(T('OpenClash 代理模式', 'OpenClash proxy mode'))}"><button type="button" data-m="rule" aria-pressed="false">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global" aria-pressed="false">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct" aria-pressed="false">${esc(T('直连', 'Direct'))}</button></div>`
 					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console'))}${icon('arrow')}</a>`
 					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
 					+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`))}</a>` : '')
@@ -537,7 +543,11 @@ return view.extend({
 	/* OpenClash's proxy mode, switched through its own switch_rule_mode call */
 	ocSwitch(seg) {
 		let mode = seg.dataset.oc;
-		const mark = m => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m == m));
+		const mark = m => seg.querySelectorAll('button').forEach(b => {
+			const on = b.dataset.m == m;
+			b.classList.toggle('on', on);
+			b.setAttribute('aria-pressed', String(on));
+		});
 		mark(mode);
 		seg.addEventListener('click', ev => {
 			const b = ev.target.closest('button[data-m]');

@@ -27,13 +27,13 @@ return view.extend({
 		this.conf = conf;
 		const usingUs = /\/7dollar$/.test((luci || {}).mediaurlbase || L.env.media || '');
 
-		const pal = td.PALETTES.map(([ id, name ]) => `<button type="button" class="td-pal" data-palette="${id}" data-pick="${id}">
+		const pal = td.PALETTES.map(([ id, name ]) => `<button type="button" class="td-pal" data-palette="${id}" data-pick="${id}" aria-pressed="false">
 			<div class="pv"><div class="sb"><i></i><i></i><i></i><i></i></div><div class="cd"><i></i><i></i><i style="width:70%"></i><u></u></div></div>
 			<div class="nm"><span>${esc(name)}</span><span class="ck">${icon('tick')}</span></div></button>`).join('');
 
 		const cards = CARDS.map(([ k, n, d, need, why ]) => need && !need(tree)
-			? `<div class="td-row off"><div class="lb"><b>${esc(n)} <span class="td-chip mute">${esc(T('未检测到', 'Not found'))}</span></b><small>${esc(why)}</small></div><button type="button" class="td-switch" disabled aria-label="${esc(n)}"></button></div>`
-			: `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" aria-label="${esc(n)}"></button></div>`).join('');
+			? `<div class="td-row off"><div class="lb"><b>${esc(n)} <span class="td-chip mute">${esc(T('未检测到', 'Not found'))}</span></b><small>${esc(why)}</small></div><button type="button" class="td-switch" disabled role="switch" aria-checked="false" aria-label="${esc(n)}"></button></div>`
+			: `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" role="switch" aria-checked="false" aria-label="${esc(n)}"></button></div>`).join('');
 
 
 		const root = td.html(`<div class="td-look">
@@ -47,9 +47,9 @@ return view.extend({
 
 			<section class="td-card td-sect">
 				<h3 class="td-sect-t">${esc(T('配色', 'Palette'))}</h3>
-				<div class="td-palettes">${pal}</div>
+				<div class="td-palettes" role="group" aria-label="${esc(T('配色', 'Palette'))}">${pal}</div>
 				<div class="td-row"><div class="lb"><b>${esc(T('显示模式', 'Mode'))}</b></div>
-					<div class="td-seg" id="td-modes"><button type="button" data-m="light">${esc(T('浅色', 'Light'))}</button><button type="button" data-m="dark">${esc(T('深色', 'Dark'))}</button><button type="button" data-m="auto">${esc(T('跟随系统', 'Auto'))}</button></div></div>
+					<div class="td-seg" id="td-modes" role="group" aria-label="${esc(T('显示模式', 'Display mode'))}"><button type="button" data-m="light" aria-pressed="false">${esc(T('浅色', 'Light'))}</button><button type="button" data-m="dark" aria-pressed="false">${esc(T('深色', 'Dark'))}</button><button type="button" data-m="auto" aria-pressed="false">${esc(T('跟随系统', 'Auto'))}</button></div></div>
 			</section>
 
 			<section class="td-card td-sect">
@@ -85,9 +85,17 @@ return view.extend({
 
 	sync() {
 		const c = this.conf;
-		this.root.querySelectorAll('.td-pal').forEach(b => b.classList.toggle('on', b.dataset.pick == c.palette));
-		this.root.querySelectorAll('#td-modes button').forEach(b => b.classList.toggle('on', b.dataset.m == c.mode));
-		this.root.querySelectorAll('[data-card]').forEach(b => b.classList.toggle('on', td.cardOn(c, b.dataset.card)));
+		const pressed = (b, on) => {
+			b.classList.toggle('on', on);
+			b.setAttribute('aria-pressed', String(on));
+		};
+		this.root.querySelectorAll('.td-pal').forEach(b => pressed(b, b.dataset.pick == c.palette));
+		this.root.querySelectorAll('#td-modes button').forEach(b => pressed(b, b.dataset.m == c.mode));
+		this.root.querySelectorAll('[data-card]').forEach(b => {
+			const on = td.cardOn(c, b.dataset.card);
+			b.classList.toggle('on', on);
+			b.setAttribute('aria-checked', String(on));
+		});
 	},
 
 	update(patch) {

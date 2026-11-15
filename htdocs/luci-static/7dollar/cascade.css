@@ -167,18 +167,26 @@ kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-ra
 /* command palette / mobile sheet */
 .td-pop{position:fixed;inset:0;z-index:1000;background:color-mix(in srgb,#141413 30%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;animation:td-fade var(--base) var(--ease)}
 .td-pop-box{width:min(560px,100%);max-height:70vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line-soft);border-radius:18px;box-shadow:var(--shadow-pop);overflow:hidden;animation:td-rise var(--base) var(--ease)}
+.td-pop-head{display:flex;align-items:center;gap:12px;padding:10px 16px 0}
+.td-pop-head h2{font-size:14px;font-weight:500;margin:0}
+.td-pop-close{display:grid;place-items:center;margin-left:auto;min-width:36px;min-height:36px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink-2);font:24px/1 var(--sans);cursor:pointer}
+.td-pop-close:hover{background:var(--hover)}
+.td-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 /* exits get their own keyframes: reusing td-fade/td-rise would not restart the finished entrance */
 .td-pop.td-out,.td-toast.td-out{animation:td-out var(--fast) var(--ease) both}
+.td-pop.td-out{pointer-events:none}
 .td-out .td-pop-box{animation:td-sink var(--fast) var(--ease) both}
 @keyframes td-out{to{opacity:0}}
 @keyframes td-sink{to{opacity:0;transform:translateY(6px)}}
 .td-pop-in{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line-soft);color:var(--ink-3)}
+.td-pop-in:focus-within{box-shadow:inset 0 -2px var(--accent)}
 .td-pop-in input{flex:1;border:0!important;background:none!important;box-shadow:none!important;outline:0;font-size:16px!important;height:auto!important;padding:4px 0!important;color:var(--ink);width:auto!important;min-width:0}
 .td-pop-list{overflow-y:auto;padding:8px;margin:0;list-style:none}
 .td-pop-list a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:var(--ink);text-decoration:none}
 .td-pop-list a small{margin-left:auto;color:var(--ink-3);font-size:12px;white-space:nowrap}
 .td-pop-list a svg{color:var(--ink-3)}
 .td-pop-list a.on,.td-pop-list a:hover{background:var(--hover);text-decoration:none}
+.td-pop-list a.on small,.td-pop-list a:hover small{color:var(--ink-2)}
 .td-pop-list a.on svg{color:var(--accent)}
 .td-pop-list .grp{padding:12px 12px 4px;font-size:12px;color:var(--ink-3)}
 .td-pop-empty{padding:28px;text-align:center;color:var(--ink-3)}
@@ -644,7 +652,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-card-h a svg{width:14px;height:14px}
 .td-card-h .td-muted{font-size:12.5px}
 .td-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:500;background:var(--ok-soft);color:var(--ok);white-space:nowrap}
-.td-chip.mute{background:var(--surface-2);color:var(--ink-3)}
+.td-chip.mute{background:var(--surface-2);color:var(--ink-2)}
 .td-chip.acc{background:var(--accent-soft);color:var(--accent-2)}
 .td-chip.warn{background:var(--warn-soft);color:var(--warn)}
 .td-chip.bad{background:var(--bad-soft);color:var(--bad)}
@@ -662,7 +670,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-node.bad .ic{background:var(--bad-soft);color:var(--bad)}
 .td-node .ic svg{width:24px;height:24px}
 .td-node b{font-weight:500;margin-top:10px;font-size:14px;max-width:100%;overflow-wrap:anywhere}
-.td-node small{color:var(--ink-3);font-size:12.5px}
+.td-node small{color:var(--ink-3);font-size:12.5px;max-width:100%;overflow-wrap:anywhere}
 .td-link{flex:1 1 0;min-width:18px;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:clamp(6px,2.6cqi,12px)}
 .td-link .t{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:17px}
 .td-link .ln{position:relative;width:100%;height:2px;background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 11px)}
@@ -671,7 +679,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-link.down .ln i{display:none}
 .td-link.down .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 11px);opacity:.6}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
-@container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
+@container (max-width:430px){.td-link .t{visibility:hidden}}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
@@ -768,13 +776,23 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-row .lb{flex:1 1 220px;min-width:0}
 .td-row .lb b{font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .td-row .lb small{color:var(--ink-3);font-size:12.5px;display:block}
-.td-row.off{opacity:.55}
+.td-row.off .lb small{color:var(--ink-2)}
+.td-row.off .td-switch{opacity:.55}
 .td-switch{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:background var(--base) var(--ease);flex:none;border:0;cursor:pointer;padding:0}
 .td-switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform var(--base) var(--ease)}
 .td-switch.on{background:var(--accent)}
 .td-switch.on::after{transform:translateX(18px);background:var(--on-accent)}
 [data-palette=graphite] .td-switch.on::after{background:var(--surface)}
 .td-switch[disabled]{cursor:not-allowed}
+@media (any-pointer:coarse){
+  .td-seg{gap:4px}
+  .td-seg button,.td-run .td-seg button{min-height:44px;min-width:44px}
+  .td-pop-close{min-height:44px;min-width:44px}
+  .td-switch,.td-switch.on{height:44px;background:transparent}
+  .td-switch::before{content:"";position:absolute;inset:9px 0;border-radius:99px;background:var(--line)}
+  .td-switch::after{top:12px}
+  .td-switch.on::before{background:var(--accent)}
+}
 .td-palettes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:6px 0 22px}
 .td-pal{border-radius:16px;padding:8px;border:1.5px solid var(--line-soft);background:var(--surface);text-align:left;transition:border-color var(--fast) var(--ease),transform var(--fast) var(--ease);color:var(--ink);cursor:pointer;font:inherit}
 .td-pal:hover{transform:translateY(-2px)}

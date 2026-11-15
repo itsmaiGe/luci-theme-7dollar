@@ -51,6 +51,7 @@ return baseclass.extend({
 		this.pages = pages;
 		this.groups = groups;
 		this.current = current;
+		this.here = here;
 
 		this.renderNav(groups, current);
 		this.renderPills(groups, current);
@@ -59,12 +60,16 @@ return baseclass.extend({
 			this.renderTabs(current.node, current.path, current.path.split('/').length);
 
 		const btn = document.getElementById('td-search');
-		if (btn) btn.addEventListener('click', () => this.openSearch());
+		if (btn) btn.addEventListener('click', () => this.openSearch(btn));
 	},
 
 	href(group) {
 		const first = group.list[0];
 		return L.url(first.path);
+	},
+
+	currentAttr(path) {
+		return this.here == path ? ' aria-current="page"' : '';
 	},
 
 	renderNav(groups, current) {
@@ -75,16 +80,32 @@ return baseclass.extend({
 			const on = current && current.group == g.id;
 			const short = g.short ? `<span class="lbl has-short">${esc(g.label)}</span><span class="short">${esc(g.short)}</span>`
 			                      : `<span class="lbl">${esc(g.label)}</span>`;
-			return `<a href="${this.href(g)}" data-g="${g.id}" title="${esc(g.label)}" class="${on ? 'on' : ''}${g.mob === false ? ' mob-hide' : ''}" style="animation-delay:${i * 25}ms">${icon(g.icon)}${short}</a>`;
+			return `<a href="${this.href(g)}" data-g="${g.id}"${this.currentAttr(g.list[0].path)} title="${esc(g.label)}" class="${on ? 'on' : ''}${g.mob === false ? ' mob-hide' : ''}" style="animation-delay:${i * 25}ms">${icon(g.icon)}${short}</a>`;
 		}).join('');
 
 		const sys = nav.querySelector('[data-g="system"]');
-		if (sys)
+		if (sys) {
+			const sync = () => {
+				if (mqPhone.matches) {
+					sys.setAttribute('aria-haspopup', 'dialog');
+					sys.setAttribute('aria-expanded', 'false');
+					sys.removeAttribute('aria-current');
+				}
+				else {
+					sys.removeAttribute('aria-haspopup');
+					sys.removeAttribute('aria-expanded');
+					if (sys.getAttribute('href') == L.url(this.here)) sys.setAttribute('aria-current', 'page');
+					else sys.removeAttribute('aria-current');
+				}
+			};
+			mqPhone.addEventListener('change', sync);
+			sync();
 			sys.addEventListener('click', ev => {
 				if (!mqPhone.matches) return;
 				ev.preventDefault();
-				this.openSheet();
+				this.openSheet(sys);
 			});
+		}
 	},
 
 	renderPills(groups, current) {
@@ -99,7 +120,7 @@ return baseclass.extend({
 			const all = g.list.find(p => p.path == 'admin/apps');
 			if (all)
 				box.innerHTML = `<a class="back" href="${L.url(all.path)}">${icon('chev')}${esc(all.title)}</a>`;
-			box.innerHTML += `<a class="on" href="${L.url(current.path)}">${esc(current.title)}</a>`;
+			box.innerHTML += `<a class="on" href="${L.url(current.path)}"${this.currentAttr(current.path)}>${esc(current.title)}</a>`;
 			return;
 		}
 
@@ -107,7 +128,7 @@ return baseclass.extend({
 		if (items.length < 2) return;
 
 		/* everyday pages first; the rest wait behind "More" unless one of them is open */
-		const pill = (p, cls) => `<a href="${L.url(p.path)}" class="${p === current ? 'on' : cls || ''}">${esc(p.title)}</a>`;
+		const pill = (p, cls) => `<a href="${L.url(p.path)}"${this.currentAttr(p.path)} class="${p === current ? 'on' : cls || ''}">${esc(p.title)}</a>`;
 		const rest = items.filter(p => g.pages.indexOf(p.path) < 0);
 		const fold = rest.length > 1 && rest.indexOf(current) < 0;
 		box.innerHTML = (fold ? items.filter(p => rest.indexOf(p) < 0) : items).map(p => pill(p)).join('')
@@ -141,8 +162,9 @@ return baseclass.extend({
 
 		children.forEach(child => {
 			const isActive = (L.env.dispatchpath[level] == child.name);
+			const path = url + '/' + child.name;
 			ul.appendChild(E('li', { 'class': 'tabmenu-item-%s%s'.format(child.name, isActive ? ' active' : '') }, [
-				E('a', { 'href': L.url(url, child.name) }, [ _(child.title) ])
+				E('a', { 'href': L.url(url, child.name), ...(this.here == path ? { 'aria-current': 'page' } : {}) }, [ _(child.title) ])
 			]));
 			if (isActive) active = child;
 		});
@@ -152,6 +174,65 @@ return baseclass.extend({
 
 		if (active)
 			this.renderTabs(td.realNode(node, active), url + '/' + active.name, level + 1);
+	},
+
+	/* Both dialogs share focus handling so moving from the sheet to search keeps the original opener. */
+	mountDialog(pop, initial, trigger) {
+		const opener = trigger || document.activeElement;
+		const background = Array.from(document.body.children).filter(el => el !== pop).map(el => ({
+			el: el, inert: el.getAttribute('inert'), hidden: el.getAttribute('aria-hidden')
+		}));
+		let closed = false;
+		const focusable = () => Array.from(pop.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+			.filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length && !el.closest('[inert]') && getComputedStyle(el).visibility != 'hidden');
+		const focusFirst = () => {
+			const target = initial && initial.isConnected && !initial.disabled ? initial : focusable()[0] || pop;
+			target.focus();
+		};
+		const expanded = opener && opener.getAttribute('aria-haspopup') == 'dialog';
+		const close = (restore = true, immediate = false) => {
+			if (closed) return;
+			closed = true;
+			pop.removeEventListener('keydown', onKey);
+			document.removeEventListener('focusin', onFocus, true);
+			background.forEach(({ el, inert, hidden }) => {
+				if (inert === null) el.removeAttribute('inert'); else el.setAttribute('inert', inert);
+				if (hidden === null) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', hidden);
+			});
+			if (expanded) opener.setAttribute('aria-expanded', 'false');
+			if (restore) {
+				const target = opener && opener !== document.body && opener.isConnected && !opener.disabled && opener.getClientRects().length
+					? opener : [ document.getElementById('td-search'), document.querySelector('#td-nav [data-g="system"]') ]
+						.find(el => el && el.getClientRects().length);
+				if (target) target.focus();
+			}
+			pop.setAttribute('inert', '');
+			pop.setAttribute('aria-hidden', 'true');
+			if (immediate) pop.remove(); else td.leave(pop);
+		};
+		const onKey = ev => {
+			if (ev.key == 'Escape') {
+				ev.preventDefault();
+				ev.stopPropagation();
+				close();
+			}
+			else if (ev.key == 'Tab') {
+				const items = focusable(), at = items.indexOf(document.activeElement);
+				if (!items.length || at < 0 || (ev.shiftKey ? at == 0 : at == items.length - 1)) {
+					ev.preventDefault();
+					(items.length ? items[ev.shiftKey ? items.length - 1 : 0] : pop).focus();
+				}
+			}
+		};
+		const onFocus = ev => { if (!closed && !pop.contains(ev.target)) focusFirst() };
+		pop.addEventListener('keydown', onKey);
+		document.addEventListener('focusin', onFocus, true);
+		pop.querySelector('[data-close]').addEventListener('click', () => close());
+		pop.addEventListener('click', ev => { if (ev.target === pop) close() });
+		focusFirst();
+		background.forEach(({ el }) => { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true') });
+		if (expanded) opener.setAttribute('aria-expanded', 'true');
+		return { close: close, trigger: opener };
 	},
 
 	/* ---------- search (⌘K) ---------- */
@@ -168,19 +249,25 @@ return baseclass.extend({
 		return (this._entries = out);
 	},
 
-	openSearch() {
+	openSearch(trigger) {
 		if (document.querySelector('.td-pop:not(.td-out)')) return;
 
-		const pop = td.html(`<div class="td-pop" role="dialog" aria-modal="true">
+		const pop = td.html(`<div class="td-pop" role="dialog" aria-modal="true" aria-labelledby="td-search-title" tabindex="-1">
 			<div class="td-pop-box">
-				<label class="td-pop-in">${icon('search')}<input type="search" placeholder="${esc(T('搜索功能或设置，例如“端口转发”', 'Search pages and settings'))}" autocomplete="off"><kbd>Esc</kbd></label>
+				<div class="td-pop-head"><h2 id="td-search-title">${esc(T('搜索功能或设置', 'Search pages and settings'))}</h2><button type="button" class="td-pop-close" data-close aria-label="${esc(T('关闭搜索', 'Close search'))}"><span aria-hidden="true">×</span></button></div>
+				<label class="td-pop-in">${icon('search')}<input type="search" aria-label="${esc(T('搜索功能或设置', 'Search pages and settings'))}" aria-describedby="td-search-status" placeholder="${esc(T('搜索功能或设置，例如“端口转发”', 'Search pages and settings'))}" autocomplete="off"><kbd aria-hidden="true">Esc</kbd></label>
+				<div class="td-sr-only" id="td-search-status" role="status" aria-atomic="true"></div>
 				<div class="td-pop-list"></div>
 			</div></div>`);
 		document.body.appendChild(pop);
 
-		const input = pop.querySelector('input'), list = pop.querySelector('.td-pop-list');
+		const input = pop.querySelector('input'), list = pop.querySelector('.td-pop-list'), status = pop.querySelector('#td-search-status');
 		const all = this.entries();
 		let sel = 0, shown = [];
+		const announce = () => {
+			const text = shown[sel] ? `${sel + 1} / ${shown.length} · ${shown[sel].title} · ${shown[sel].group}` : T('没有找到相关功能', 'Nothing found');
+			if (status.textContent !== text) status.textContent = text;
+		};
 
 		const draw = () => {
 			const q = input.value.trim().toLowerCase();
@@ -192,37 +279,35 @@ return baseclass.extend({
 				: `<div class="td-pop-empty">${esc(T('没有找到相关功能', 'Nothing found'))}</div>`;
 			const on = list.querySelector('.on');
 			if (on) on.scrollIntoView({ block: 'nearest' });
+			announce();
 		};
-
-		const close = () => td.leave(pop);
 
 		input.addEventListener('input', () => { sel = 0; draw() });
 		input.addEventListener('keydown', ev => {
-			if (ev.key == 'ArrowDown') { sel = Math.min(sel + 1, shown.length - 1); draw(); ev.preventDefault() }
+			if (ev.key == 'ArrowDown') { sel = Math.max(0, Math.min(sel + 1, shown.length - 1)); draw(); ev.preventDefault() }
 			else if (ev.key == 'ArrowUp') { sel = Math.max(sel - 1, 0); draw(); ev.preventDefault() }
-			else if (ev.key == 'Enter' && shown[sel]) { location.href = L.url(shown[sel].path) }
-			else if (ev.key == 'Escape') close();
+			else if (ev.key == 'Enter' && shown[sel]) { ev.preventDefault(); location.href = L.url(shown[sel].path) }
 		});
 		list.addEventListener('mousemove', ev => {
 			const a = ev.target.closest('a[data-i]');
-			if (a && +a.dataset.i != sel) { sel = +a.dataset.i; list.querySelectorAll('a').forEach(x => x.classList.toggle('on', x === a)) }
+			if (a && +a.dataset.i != sel) { sel = +a.dataset.i; list.querySelectorAll('a').forEach(x => x.classList.toggle('on', x === a)); announce() }
 		});
-		pop.addEventListener('click', ev => { if (ev.target === pop) close() });
 
 		draw();
-		input.focus();
+		this.mountDialog(pop, input, trigger);
 	},
 
 	/* ---------- phone: "More" sheet ---------- */
 
-	openSheet() {
+	openSheet(trigger) {
 		if (document.querySelector('.td-pop:not(.td-out)')) return;
 
 		const rest = (this.groups || []).filter(g => g.mob === false || g.id == 'system');
 		const body = rest.map(g => `<div class="grp">${esc(g.label)}</div>` +
-			g.list.map(p => `<a href="${L.url(p.path)}" class="${this.current === p ? 'on' : ''}">${icon(g.id == 'apps' ? td.appIcon(p.path) : g.icon)}<span>${esc(p.title)}</span></a>`).join('')).join('');
+			g.list.map(p => `<a href="${L.url(p.path)}"${this.currentAttr(p.path)} class="${this.current === p ? 'on' : ''}">${icon(g.id == 'apps' ? td.appIcon(p.path) : g.icon)}<span>${esc(p.title)}</span></a>`).join('')).join('');
 
-		const pop = td.html(`<div class="td-pop" role="dialog" aria-modal="true"><div class="td-pop-box">
+		const pop = td.html(`<div class="td-pop" role="dialog" aria-modal="true" aria-labelledby="td-sheet-title" tabindex="-1"><div class="td-pop-box">
+			<div class="td-pop-head"><h2 id="td-sheet-title">${esc(T('更多菜单', 'More menu'))}</h2><button type="button" class="td-pop-close" data-close aria-label="${esc(T('关闭菜单', 'Close menu'))}"><span aria-hidden="true">×</span></button></div>
 			<div class="td-pop-list">${body}</div>
 			<div class="td-sheet-tools">
 				<button class="btn" type="button" data-act="search">${icon('search')}${esc(T('搜索', 'Search'))}</button>
@@ -231,10 +316,10 @@ return baseclass.extend({
 			</div></div></div>`);
 
 		document.body.appendChild(pop);
+		const dialog = this.mountDialog(pop, pop.querySelector('.td-pop-list a'), trigger);
 		pop.addEventListener('click', ev => {
 			const b = ev.target.closest('[data-act]');
-			if (ev.target === pop) td.leave(pop);
-			else if (b && b.dataset.act == 'search') { pop.remove(); this.openSearch() }
+			if (b && b.dataset.act == 'search') { dialog.close(false, true); this.openSearch(dialog.trigger) }
 			else if (b && b.dataset.act == 'mode') this.toggleMode();
 		});
 	},
