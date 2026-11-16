@@ -88,10 +88,10 @@ return view.extend({
 
 	sync() {
 		const c = this.conf;
-		this.root.querySelectorAll('.td-pal').forEach(b => b.classList.toggle('on', b.dataset.pick == c.palette));
-		this.root.querySelectorAll('#td-modes button').forEach(b => b.classList.toggle('on', b.dataset.m == c.mode));
-		this.root.querySelectorAll('#td-units button').forEach(b => b.classList.toggle('on', b.dataset.m == c.rate_unit));
-		this.root.querySelectorAll('[data-card]').forEach(b => b.classList.toggle('on', td.cardOn(c, b.dataset.card)));
+		this.root.querySelectorAll('.td-pal').forEach(b => td.press(b, b.dataset.pick == c.palette));
+		this.root.querySelectorAll('#td-modes button').forEach(b => td.press(b, b.dataset.m == c.mode));
+		this.root.querySelectorAll('#td-units button').forEach(b => td.press(b, b.dataset.m == c.rate_unit));
+		this.root.querySelectorAll('[data-card]').forEach(b => td.press(b, td.cardOn(c, b.dataset.card)));
 	},
 
 	update(patch) {

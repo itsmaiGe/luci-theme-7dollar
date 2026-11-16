@@ -306,6 +306,12 @@ function motion(name) {
 }
 
 /* Exits mirror entrances: fade (and sink) out, then go. */
+/* A toggle button's state, for the eye (class) and for screen readers (aria-pressed) alike. */
+function press(el, on) {
+	el.classList.toggle('on', on);
+	el.setAttribute('aria-pressed', on);
+}
+
 function leave(el) {
 	if (el.classList.contains('td-out')) return;
 	el.classList.add('td-out');
@@ -694,7 +700,7 @@ return baseclass.extend({
 	PALETTES: PALETTES, OPT_IN: OPT_IN, words: words, cardOn: cardOn,
 	esc: esc, icon: icon, html: html,
 	loadMenu: loadMenu, flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, appIcon: appIcon, service: service,
-	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
+	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave, press: press,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, connName: connName,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, ports: ports, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
