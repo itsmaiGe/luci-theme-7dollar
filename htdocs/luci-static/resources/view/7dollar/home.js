@@ -396,7 +396,10 @@ return view.extend({
 		const now = Date.now();
 		const w = this.s.wan;
 		const nd = td.netdev(devText);
-		const d = w && nd[w.device];
+		/* Kernel flow offloading hands PPPoE downloads straight to the LAN, past the pppoe device's
+		 * counter; the port underneath still sees every frame. So take the larger of the two. */
+		const d = w && [ w.device, w.port ].map(n => nd[n]).filter(Boolean)
+			.reduce((a, b) => a ? { rx: Math.max(a.rx, b.rx), tx: Math.max(a.tx, b.tx) } : b, null);
 
 		if (info) this.s.info = info;
 
