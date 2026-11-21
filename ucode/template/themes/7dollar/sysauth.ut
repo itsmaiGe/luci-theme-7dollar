@@ -69,9 +69,15 @@
 			u.focus();
 		});
 
+		/* The spinner is only feedback. The button stays enabled: a second click just submits
+		 * again, and a browser that does not send the form is not left with a dead page. */
 		form.addEventListener('submit', function() {
-			go.disabled = true;
 			go.classList.add('spinning');
+		});
+
+		/* coming back to this page (back button, cancelled navigation) shows it as it was left */
+		window.addEventListener('pageshow', function() {
+			go.classList.remove('spinning');
 		});
 
 		pw.focus();
