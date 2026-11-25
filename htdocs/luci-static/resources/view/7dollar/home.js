@@ -26,8 +26,11 @@ const MODE = {
 const sec = (cfg, s) => s[0] == '@' ? td.uciType(cfg, s.slice(1)).then(a => Object.values(a)[0] || {}) : td.uciSection(cfg, s);
 const plain = (cfg, s, f) => () => sec(cfg, s).then(c => ({ sub: f(c) }));
 /* current node: the section named in `key`, shown by its `label` field */
-const node = (cfg, s, key, label, more) => () => sec(cfg, s).then(c => (c[key] && c[key] != 'nil' ? td.uciSection(cfg, c[key]) : Promise.resolve({}))
-	.then(n => ({ sub: [ n[label] || (c[key] != 'nil' && c[key]) || T('未选节点', 'No node', 'Узел не выбран'), more && more(c) ].filter(Boolean).join(' · ') })));
+const node = (cfg, s, keys, label, more) => srv => (srv && srv.cfg ? Promise.resolve(srv.cfg) : sec(cfg, s)).then(c => {
+	const id = [].concat(keys).map(k => c[k]).find(v => v && v != 'nil');
+	return (id ? td.uciSection(cfg, id) : Promise.resolve({}))
+		.then(n => ({ sub: [ n[label] || id || T('未选节点', 'No node', 'Узел не выбран'), more && more(c) ].filter(Boolean).join(' · ') }));
+});
 const panel = port => ({ link: `http://${location.hostname}:${port}/` });
 const shares = (cfg, type) => () => Promise.all([ td.uciType(cfg, type), td.mounts() ]).then(([ s, m ]) => {
 	const list = Object.values(s).filter(x => x.path);
@@ -39,7 +42,7 @@ const APPS = {
 	openclash: () => td.uciSection('openclash', 'config').then(c => ({
 		sub: String(c.en_mode || c.operation_mode || '').replace(/^fake-ip/, 'Fake-IP').replace(/^redir-host/, 'Redir-Host').replace(/-(tun|mix)$/, s => ' · ' + s.slice(1).toUpperCase()),
 		seg: c.proxy_mode || 'rule' })),
-	passwall: node('passwall', '@global', 'tcp_node', 'remarks'),
+	passwall: node('passwall', '@global', [ 'tcp_node', 'node' ], 'remarks'),
 	passwall2: node('passwall2', '@global', 'node', 'remarks'),
 	shadowsocksr: node('shadowsocksr', '@global', 'global_server', 'alias', c => MODE[c.run_mode]),
 	homeproxy: node('homeproxy', 'config', 'main_node', 'label', c => MODE[c.routing_mode]),
@@ -50,7 +53,20 @@ const APPS = {
 	smartdns: plain('smartdns', '@smartdns', c => c.port && T('端口 ', 'Port ', 'Порт ') + c.port),
 	bandix: plain('bandix', 'general', c => c.iface && T('监控 ', 'Watching ', 'Интерфейс ') + c.iface),
 	ksmbd: shares('ksmbd', 'share'),
-	samba4: shares('samba4', 'sambashare')
+	samba4: shares('samba4', 'sambashare'),
+	'adblock-fast': s => {
+		const n = +(s && s.data && s.data.entries) || 0;
+		return Promise.resolve({ sub: n ? T(`已拦截 ${n.toLocaleString()} 个域名`, `${n.toLocaleString()} domains blocked`, `Заблокировано доменов: ${n.toLocaleString()}`) : '' });
+	},
+	eqos: () => td.uciType('eqos', 'device').then(d => {
+		const n = Object.keys(d || {}).length;
+		return { sub: n ? T(`${n} 台设备限速`, `${n} ${n == 1 ? 'device' : 'devices'} limited`, `Лимит устройств: ${n}`) : '' };
+	})
+};
+const FALLBACK = {
+	passwall: [ 'passwall', '@global', 'enabled' ],
+	passwall2: [ 'passwall2', '@global', 'enabled' ],
+	eqos: [ 'eqos', 'config', 'enabled' ]
 };
 const PROTO = { dhcp: T('自动获取', 'DHCP', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE', 'PPPoE'), static: T('静态地址', 'Static', 'Статика'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular', 'Мобильная сеть'), ncm: T('移动网络', 'Cellular', 'Мобильная сеть'), modemmanager: T('移动网络', 'Cellular', 'Мобильная сеть') };
 
@@ -527,20 +543,30 @@ return view.extend({
 		if (!box) return Promise.resolve();
 		return td.services().then(all => {
 			const fn = s => APPS[s.name.toLowerCase()];
-			const live = this.s.apps.map(p => [ p, td.service(all, p.path) ]).filter(([ , s ]) => s && s.running)
-				.sort(([ , a ], [ , b ]) => !fn(a) - !fn(b));
-			const top = live.slice(0, live.length > 5 ? 4 : 5), more = live.length - top.length;
-			return Promise.all(top.map(([ p, s ]) => (fn(s) || (() => Promise.resolve({})))().then(x => [ p, x ]))).then(rows => {
-				const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
-					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running', 'Работает'), x.sub ].filter(Boolean).join(' · '))}</small></div>
-					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule', 'По правилам'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global', 'Глобально'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct', 'Напрямую'))}</button></div>`
-					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console', 'Панель'))}${icon('arrow')}</a>`
-					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
-					+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`, `ещё ${more} запущено`))}</a>` : '')
-					: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running', 'Приложения не запущены'))}</div>`;
-				if (box._html === html) return;
-				this.put(box, html);
-				box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
+			const probe = p => {
+				const s = td.service(all, p.path);
+				if (s && s.running) return Promise.resolve([ p, s ]);
+				const leaf = p.path.split('/').pop().toLowerCase();
+				const fb = FALLBACK[leaf];
+				if (!fb) return Promise.resolve([ p, s ]);
+				return sec(fb[0], fb[1]).then(c => [ p, { name: leaf, running: c[fb[2]] == '1', cfg: c } ]);
+			};
+			return Promise.all(this.s.apps.map(probe)).then(found => {
+				const live = found.filter(([ , s ]) => s && s.running)
+					.sort(([ , a ], [ , b ]) => !fn(a) - !fn(b));
+				const top = live.slice(0, live.length > 5 ? 4 : 5), more = live.length - top.length;
+				return Promise.all(top.map(([ p, s ]) => (fn(s) || (() => Promise.resolve({})))(s).then(x => [ p, x ]))).then(rows => {
+					const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
+						<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running', 'Работает'), x.sub ].filter(Boolean).join(' · '))}</small></div>
+						${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule', 'По правилам'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global', 'Глобально'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct', 'Напрямую'))}</button></div>`
+						: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console', 'Панель'))}${icon('arrow')}</a>`
+						: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
+						+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`, `ещё ${more} запущено`))}</a>` : '')
+						: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running', 'Приложения не запущены'))}</div>`;
+					if (box._html === html) return;
+					this.put(box, html);
+					box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
+				});
 			});
 		});
 	},
