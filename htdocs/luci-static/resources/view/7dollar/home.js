@@ -56,17 +56,19 @@ const APPS = {
 	samba4: shares('samba4', 'sambashare'),
 	'adblock-fast': s => {
 		const n = +(s && s.data && s.data.entries) || 0;
-		return Promise.resolve({ sub: n ? T(`已拦截 ${n.toLocaleString()} 个域名`, `${n.toLocaleString()} domains blocked`, `Заблокировано доменов: ${n.toLocaleString()}`) : '' });
+		return Promise.resolve({ sub: n ? T(`拦截列表 ${n.toLocaleString()} 个域名`, `${n.toLocaleString()} domains on the block list`, `В списке блокировки доменов: ${n.toLocaleString()}`) : '' });
 	},
 	eqos: () => td.uciType('eqos', 'device').then(d => {
-		const n = Object.keys(d || {}).length;
-		return { sub: n ? T(`${n} 台设备限速`, `${n} ${n == 1 ? 'device' : 'devices'} limited`, `Лимит устройств: ${n}`) : '' };
+		const n = Object.values(d || {}).filter(x => x.enabled != '0').length;
+		return { sub: n ? T(`已限速 ${n} 台设备`, `${n} ${n == 1 ? 'device' : 'devices'} limited`, `Лимит устройств: ${n}`) : '' };
 	})
 };
-const FALLBACK = {
-	passwall: [ 'passwall', '@global', 'enabled' ],
-	passwall2: [ 'passwall2', '@global', 'enabled' ],
-	eqos: [ 'eqos', 'config', 'enabled' ]
+const appFn = s => APPS[s.name.toLowerCase()];
+/* not procd services: `enabled` in their own config stands for running */
+const NOPROCD = {
+	passwall: [ 'passwall', '@global' ],
+	passwall2: [ 'passwall2', '@global' ],
+	eqos: [ 'eqos', 'config' ]
 };
 const PROTO = { dhcp: T('自动获取', 'DHCP', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE', 'PPPoE'), static: T('静态地址', 'Static', 'Статика'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular', 'Мобильная сеть'), ncm: T('移动网络', 'Cellular', 'Мобильная сеть'), modemmanager: T('移动网络', 'Cellular', 'Мобильная сеть') };
 
@@ -535,38 +537,32 @@ return view.extend({
 		});
 	},
 
-	/* ---------- apps card: one procd query plus a config read per shown app, every 30 s; the DOM is touched only when something changed.
+	/* ---------- apps card: one procd query, plus a config read per shown app and per installed app that is not a procd service, every 30 s; the DOM is touched only when something changed.
 	 * Like the devices card it shows a few rows (apps with something to say first) and counts the rest. ---------- */
+
+	liveApps(all) {
+		return Promise.all(this.s.apps.map(p => {
+			const s = td.service(all, p.path), leaf = p.path.split('/').pop().toLowerCase(), cs = NOPROCD[leaf];
+			return s && s.running || !cs ? [ p, s ] : sec(cs[0], cs[1]).then(c => [ p, { name: leaf, running: c.enabled == '1', cfg: c } ]);
+		})).then(found => found.filter(([ , s ]) => s && s.running).sort(([ , a ], [ , b ]) => !appFn(a) - !appFn(b)));
+	},
 
 	paintApps() {
 		const box = this.$('td-apps');
 		if (!box) return Promise.resolve();
-		return td.services().then(all => {
-			const fn = s => APPS[s.name.toLowerCase()];
-			const probe = p => {
-				const s = td.service(all, p.path);
-				if (s && s.running) return Promise.resolve([ p, s ]);
-				const leaf = p.path.split('/').pop().toLowerCase();
-				const fb = FALLBACK[leaf];
-				if (!fb) return Promise.resolve([ p, s ]);
-				return sec(fb[0], fb[1]).then(c => [ p, { name: leaf, running: c[fb[2]] == '1', cfg: c } ]);
-			};
-			return Promise.all(this.s.apps.map(probe)).then(found => {
-				const live = found.filter(([ , s ]) => s && s.running)
-					.sort(([ , a ], [ , b ]) => !fn(a) - !fn(b));
-				const top = live.slice(0, live.length > 5 ? 4 : 5), more = live.length - top.length;
-				return Promise.all(top.map(([ p, s ]) => (fn(s) || (() => Promise.resolve({})))(s).then(x => [ p, x ]))).then(rows => {
-					const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
-						<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running', 'Работает'), x.sub ].filter(Boolean).join(' · '))}</small></div>
-						${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule', 'По правилам'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global', 'Глобально'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct', 'Напрямую'))}</button></div>`
-						: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console', 'Панель'))}${icon('arrow')}</a>`
-						: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
-						+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`, `ещё ${more} запущено`))}</a>` : '')
-						: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running', 'Приложения не запущены'))}</div>`;
-					if (box._html === html) return;
-					this.put(box, html);
-					box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
-				});
+		return td.services().then(all => this.liveApps(all)).then(live => {
+			const top = live.slice(0, live.length > 5 ? 4 : 5), more = live.length - top.length;
+			return Promise.all(top.map(([ p, s ]) => (appFn(s) || (() => Promise.resolve({})))(s).then(x => [ p, x ]))).then(rows => {
+				const html = rows.length ? rows.map(([ p, x ]) => `<div class="td-dev td-run"><div class="td-av">${icon(td.appIcon(p.path))}</div>
+					<div class="nm"><a href="${L.url(p.path)}"><b>${esc(p.title)}</b></a><small>${esc([ T('运行中', 'Running', 'Работает'), x.sub ].filter(Boolean).join(' · '))}</small></div>
+					${x.seg ? `<div class="td-seg" data-oc="${esc(x.seg)}"><button type="button" data-m="rule">${esc(T('按规则', 'Rule', 'По правилам'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global', 'Глобально'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct', 'Напрямую'))}</button></div>`
+					: x.link ? `<a class="rt" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(T('控制台', 'Console', 'Панель'))}${icon('arrow')}</a>`
+					: x.rt ? `<div class="rt">${esc(x.rt)}</div>` : ''}</div>`).join('')
+					+ (more ? `<a class="td-more" href="${L.url('admin/apps')}">${esc(T(`还有 ${more} 个在运行`, `${more} more running`, `ещё ${more} запущено`))}</a>` : '')
+					: `<div class="td-empty-row">${esc(T('没有正在运行的应用', 'No apps running', 'Приложения не запущены'))}</div>`;
+				if (box._html === html) return;
+				this.put(box, html);
+				box.querySelectorAll('[data-oc]').forEach(seg => this.ocSwitch(seg));
 			});
 		});
 	},
